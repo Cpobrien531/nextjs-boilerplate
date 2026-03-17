@@ -1,0 +1,207 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { DashboardNav } from '@/components/Dashboard'
+
+interface Category {
+  id: string
+  name: string
+  color: string
+}
+
+interface Tag {
+  id: string
+  name: string
+  color: string
+}
+
+interface Expense {
+  id: string
+  name: string
+  amount: number
+  expenseDate: string
+  category: Category
+  description?: string
+  location?: string
+  isBillable: boolean
+  status: string
+  tags?: { tag: Tag }[]
+}
+
+export default function ExpensesPage() {
+  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filters, setFilters] = useState({
+    categoryId: '',
+    status: '',
+  })
+
+  useEffect(() => {
+    fetchCategories()
+    fetchExpenses()
+  }, [])
+
+  useEffect(() => {
+    fetchExpenses()
+  }, [filters])
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/categories')
+      const data = await res.json()
+      if (data.success) {
+        setCategories(data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+    }
+  }
+
+  const fetchExpenses = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (filters.categoryId) params.append('categoryId', filters.categoryId)
+      if (filters.status) params.append('status', filters.status)
+
+      const res = await fetch(`/api/expenses?${params.toString()}`)
+      const data = await res.json()
+      if (data.success) {
+        setExpenses(data.data.expenses)
+      }
+    } catch (error) {
+      console.error('Error fetching expenses:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (filters.categoryId) params.append('categoryId', filters.categoryId)
+
+      const res = await fetch(`/api/export/csv?${params.toString()}`)
+      const csv = await res.text()
+
+      const blob = new Blob([csv], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'expenses.csv'
+      a.click()
+    } catch (error) {
+      console.error('Error exporting expenses:', error)
+      alert('Error exporting expenses')
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <DashboardNav />
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Expenses</h1>
+          <button
+            onClick={handleExport}
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          >
+            Export CSV
+          </button>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow mb-8">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">Filter by Category</label>
+              <select
+                value={filters.categoryId}
+                onChange={(e) =>
+                  setFilters({ ...filters, categoryId: e.target.value })
+                }
+                className="w-full px-4 py-2 border border-gray-300 rounded"
+              >
+                <option value="">All Categories</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">Filter by Status</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded"
+              >
+                <option value="">All Statuses</option>
+                <option value="DRAFT">Draft</option>
+                <option value="SAVED">Saved</option>
+                <option value="CATEGORIZED">Categorized</option>
+                <option value="TAGGED">Tagged</option>
+                <option value="EDITED">Edited</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="bg-white rounded-lg shadow p-6">Loading expenses...</div>
+        ) : (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-6 py-3 text-left text-gray-900 font-medium">Date</th>
+                  <th className="px-6 py-3 text-left text-gray-900 font-medium">Name</th>
+                  <th className="px-6 py-3 text-left text-gray-900 font-medium">Category</th>
+                  <th className="px-6 py-3 text-left text-gray-900 font-medium">Amount</th>
+                  <th className="px-6 py-3 text-left text-gray-900 font-medium">Status</th>
+                  <th className="px-6 py-3 text-left text-gray-900 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {expenses.map((expense) => (
+                  <tr key={expense.id} className="border-t hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      {new Date(expense.expenseDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">{expense.name}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className="px-3 py-1 rounded text-white text-sm"
+                        style={{ backgroundColor: expense.category.color }}
+                      >
+                        {expense.category.name}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-medium">${expense.amount.toFixed(2)}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${
+                          expense.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' : ''
+                        } ${expense.status === 'SAVED' ? 'bg-blue-100 text-blue-800' : ''} ${
+                          expense.status === 'CATEGORIZED' ? 'bg-green-100 text-green-800' : ''
+                        }`}
+                      >
+                        {expense.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button className="text-blue-500 hover:text-blue-700 mr-4 text-sm">
+                        Edit
+                      </button>
+                      <button className="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

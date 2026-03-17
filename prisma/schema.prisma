@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  name                 String
+  password             String
+  budgetAlertThreshold Decimal   @default(0.80) @db.Decimal(3, 2)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  expenses   Expense[]
+  categories Category[]
+  tags       Tag[]
+}
+
+model Category {
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                String
+  icon                String?
+  color               String    @default("#808080")
+  monthlyBudget       Decimal   @default(0.00) @db.Decimal(10, 2)
+  currentMonthSpent   Decimal   @default(0.00) @db.Decimal(10, 2)
+  createdAt           DateTime  @default(now())
+
+  expenses Expense[]
+
+  @@unique([userId, name])
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String    @db.VarChar(50)
+  color     String    @db.VarChar(7) @default("#808080")
+  createdAt DateTime  @default(now())
+
+  expenses Expense[]
+
+  @@unique([userId, name])
+}
+
+model Expense {
+  id                    String    @id @default(cuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId            String
+  category              Category  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name                  String    @db.VarChar(100)
+  description           String?   @db.Text
+  amount                Decimal   @db.Decimal(10, 2)
+  expenseDate           DateTime
+  location              String?   @db.VarChar(255)
+  receiptImageURL       String?   @db.VarChar(500)
+  receiptImagePath      String?   @db.VarChar(500)
+  isBillable            Boolean   @default(false)
+  status                ExpenseStatus @default(DRAFT)
+  createdAt             DateTime  @default(now())
+  lastModifiedDate      DateTime  @updatedAt
+
+  tags Expense_Tag[]
+}
+
+model Expense_Tag {
+  expenseId String
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([expenseId, tagId])
+}
+
+enum ExpenseStatus {
+  DRAFT
+  SAVED
+  CATEGORIZED
+  TAGGED
+  EDITED
+  DELETED
+  INCLUDED_IN_EXPORT
+}
