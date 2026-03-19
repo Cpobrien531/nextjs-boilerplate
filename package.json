@@ -16,7 +16,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "@prisma/client": "^5.19.0",
-    "next-auth": "^5.0.0",
+    "next-auth": "^4.24.0",
     "bcryptjs": "^2.4.3",
     "openai": "^4.52.2",
     "papaparse": "^5.4.1",
