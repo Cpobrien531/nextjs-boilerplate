@@ -15,8 +15,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+
   title: "ExpenseTracker",
   description: "Smart expense tracking for freelancers and small business owners",
+
 };
 
 export default async function RootLayout({
