@@ -46,7 +46,8 @@ export default function Home() {
       );
       setCustomCategories(custom);
     }
-  }, []);
+    return [];
+  });
 
   useEffect(() => {
     if (status === "authenticated") {

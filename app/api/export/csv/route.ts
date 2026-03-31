@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { apiError, handleApiError } from '@/lib/api'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: Request) {
   try {
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
 
-    const whereClause: any = { userId: session.user.id }
+    const whereClause: Prisma.ExpenseWhereInput = { userId: session.user.id }
 
     if (categoryId) {
       whereClause.categoryId = categoryId

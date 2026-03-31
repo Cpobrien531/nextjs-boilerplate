@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { DashboardNav } from '@/components/Dashboard'
 
 interface Category {
@@ -39,12 +39,11 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     fetchCategories()
-    fetchExpenses()
   }, [])
 
   useEffect(() => {
     fetchExpenses()
-  }, [filters])
+  }, [filters, fetchExpenses])
 
   const fetchCategories = async () => {
     try {
@@ -58,7 +57,7 @@ export default function ExpensesPage() {
     }
   }
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (filters.categoryId) params.append('categoryId', filters.categoryId)
@@ -74,7 +73,7 @@ export default function ExpensesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
 
   const handleExport = async () => {
     try {

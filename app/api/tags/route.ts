@@ -4,7 +4,7 @@ import { tagSchema } from '@/lib/validations'
 import { apiResponse, apiError, handleApiError } from '@/lib/api'
 import { ZodError } from 'zod'
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const session = await auth()
 

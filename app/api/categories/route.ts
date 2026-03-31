@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/db'
+import { categorySchema } from '@/lib/validations'
 import { apiResponse, apiError, handleApiError } from '@/lib/api'
 
-export async function GET() {
+export async function GET(_request: Request) {
   try {
     const categories = await prisma.category.findMany({
       select: { categoryName: true },

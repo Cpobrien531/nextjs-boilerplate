@@ -1,5 +1,4 @@
 import { signIn } from '@/lib/auth'
-import { redirect } from 'next/navigation'
 
 export async function POST(request: Request) {
   try {
@@ -12,7 +11,7 @@ export async function POST(request: Request) {
     })
 
     return Response.json({ success: true }, { status: 200 })
-  } catch (error) {
+  } catch (_error) {
     return Response.json({ success: false, error: 'Invalid credentials' }, { status: 401 })
   }
 }

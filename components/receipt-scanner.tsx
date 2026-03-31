@@ -2,8 +2,9 @@
 import { useState, useRef } from "react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
-import { Camera, Upload, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Camera, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import Image from "next/image";
 
 interface ScanResult {
   amount: number;
@@ -23,7 +24,7 @@ export function ReceiptScanner({ onScanComplete }: ReceiptScannerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Mock receipt scanning - in production, this would use OCR API
-  const processReceipt = async (file: File): Promise<ScanResult> => {
+  const processReceipt = async (): Promise<ScanResult> => {
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -88,7 +89,7 @@ export function ReceiptScanner({ onScanComplete }: ReceiptScannerProps) {
     // Process receipt
     setIsScanning(true);
     try {
-      const result = await processReceipt(file);
+      const result = await processReceipt();
       toast.success("Receipt scanned successfully!");
       onScanComplete(result);
       setIsOpen(false);
@@ -190,9 +191,11 @@ export function ReceiptScanner({ onScanComplete }: ReceiptScannerProps) {
 
             {previewUrl && !isScanning && (
               <div className="space-y-4">
-                <img
+                <Image
                   src={previewUrl}
                   alt="Receipt preview"
+                  width={400}
+                  height={300}
                   className="w-full rounded-lg border"
                 />
                 <p className="text-sm text-muted-foreground text-center">
@@ -204,9 +207,11 @@ export function ReceiptScanner({ onScanComplete }: ReceiptScannerProps) {
             {isScanning && (
               <div className="flex flex-col items-center justify-center py-8 space-y-4">
                 {previewUrl && (
-                  <img
+                  <Image
                     src={previewUrl}
                     alt="Receipt preview"
+                    width={128}
+                    height={128}
                     className="w-32 h-32 object-cover rounded-lg border opacity-50"
                   />
                 )}

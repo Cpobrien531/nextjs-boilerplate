@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Expense } from '@/lib/types'
 
 interface DashboardStats {
   totalSpent: number
@@ -30,16 +31,16 @@ export function DashboardHeader() {
 
         const today = new Date()
         const thisMonth = expenses
-          .filter((e: any) => {
+          .filter((e: Expense) => {
             const expenseDate = new Date(e.expenseDate)
             return (
               expenseDate.getMonth() === today.getMonth() &&
               expenseDate.getFullYear() === today.getFullYear()
             )
           })
-          .reduce((sum: number, e: any) => sum + parseFloat(e.amount), 0)
+          .reduce((sum: number, e: Expense) => sum + e.amount, 0)
 
-        const totalSpent = expenses.reduce((sum: number, e: any) => sum + parseFloat(e.amount), 0)
+        const totalSpent = expenses.reduce((sum: number, e: Expense) => sum + e.amount, 0)
 
         setStats({
           totalSpent,
