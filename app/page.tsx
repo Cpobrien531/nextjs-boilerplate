@@ -1,74 +1,109 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { ExpenseForm, Expense } from "@/components/expense-form";
 import { ExpenseList } from "@/components/expense-list";
 import { ExpenseStats } from "@/components/expense-stats";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign } from "lucide-react";
+import { DollarSign, LogOut } from "lucide-react";
 
-const STORAGE_KEY = "expense-tracker-data";
-const CUSTOM_CATEGORIES_KEY = "expense-tracker-custom-categories";
+const DEFAULT_CATEGORIES = [
+  "Food & Dining",
+  "Transportation",
+  "Shopping",
+  "Entertainment",
+  "Bills & Utilities",
+  "Healthcare",
+  "Education",
+  "Travel",
+  "Other",
+];
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setExpenses(JSON.parse(stored));
-      } catch (error) {
-        console.error("Failed to parse stored expenses:", error);
-      }
-    }
+    if (status === "unauthenticated") router.push("/login");
+  }, [status, router]);
 
-    const storedCategories = localStorage.getItem(CUSTOM_CATEGORIES_KEY);
-    if (storedCategories) {
-      try {
-        setCustomCategories(JSON.parse(storedCategories));
-      } catch (error) {
-        console.error("Failed to parse stored categories:", error);
-      }
+  const fetchExpenses = useCallback(async () => {
+    const res = await fetch("/api/expenses");
+    const json = await res.json();
+    if (json.success) setExpenses(json.data);
+  }, []);
+
+  const fetchCategories = useCallback(async () => {
+    const res = await fetch("/api/categories");
+    const json = await res.json();
+    if (json.success) {
+      const custom = (json.data as string[]).filter(
+        (c) => !DEFAULT_CATEGORIES.includes(c)
+      );
+      setCustomCategories(custom);
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
-  }, [expenses]);
-
-  useEffect(() => {
-    localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(customCategories));
-  }, [customCategories]);
-
-  const handleAddExpense = (expense: Expense) => {
-    setExpenses((prev) => [expense, ...prev]);
-  };
-
-  const handleDeleteExpense = (id: string) => {
-    setExpenses((prev) => prev.filter((expense) => expense.id !== id));
-  };
-
-  const handleAddCustomCategory = (category: string) => {
-    if (!customCategories.includes(category)) {
-      setCustomCategories((prev) => [...prev, category]);
+    if (status === "authenticated") {
+      fetchExpenses();
+      fetchCategories();
     }
+  }, [status, fetchExpenses, fetchCategories]);
+
+  const handleAddExpense = async (expense: Expense) => {
+    await fetch("/api/expenses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(expense),
+    });
+    await fetchExpenses();
   };
+
+  const handleDeleteExpense = async (id: string) => {
+    await fetch(`/api/expenses/${id}`, { method: "DELETE" });
+    setExpenses((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const handleAddCustomCategory = async (category: string) => {
+    await fetch("/api/categories", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: category }),
+    });
+    setCustomCategories((prev) =>
+      prev.includes(category) ? prev : [...prev, category]
+    );
+  };
+
+  if (status === "loading" || status === "unauthenticated") return null;
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-primary rounded-lg">
-              <DollarSign className="h-6 w-6 text-primary-foreground" />
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-primary rounded-lg">
+                <DollarSign className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <h1 className="text-3xl font-bold">Expense Tracker</h1>
             </div>
-            <h1 className="text-3xl font-bold">Expense Tracker</h1>
+            <p className="text-muted-foreground">
+              Welcome, {session?.user?.name}
+            </p>
           </div>
-          <p className="text-muted-foreground">
-            Track your expenses and manage your budget effectively
-          </p>
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mt-1"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
@@ -106,7 +141,6 @@ export default function Home() {
           </TabsContent>
         </Tabs>
       </div>
-
     </div>
   );
 }

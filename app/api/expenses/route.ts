@@ -1,56 +1,34 @@
-import { auth } from '@/lib/auth'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { expenseSchema } from '@/lib/validations'
 import { apiResponse, apiError, handleApiError } from '@/lib/api'
-import { ZodError } from 'zod'
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const session = await auth()
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) return apiError('Unauthorized', 401)
 
-    if (!session?.user?.id) {
-      return apiError('Unauthorized', 401)
-    }
-
-    const { searchParams } = new URL(request.url)
-    const categoryId = searchParams.get('categoryId')
-    const status = searchParams.get('status')
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const offset = parseInt(searchParams.get('offset') || '0')
-
-    const whereClause: any = { userId: session.user.id }
-
-    if (categoryId) {
-      whereClause.categoryId = categoryId
-    }
-
-    if (status) {
-      whereClause.status = status
-    }
+    const userId = parseInt((session.user as any).id)
 
     const expenses = await prisma.expense.findMany({
-      where: whereClause,
+      where: { userId },
       include: {
         category: true,
-        tags: {
-          include: {
-            tag: true,
-          },
-        },
+        tags: { include: { tag: true } },
       },
       orderBy: { expenseDate: 'desc' },
-      take: limit,
-      skip: offset,
     })
 
-    const total = await prisma.expense.count({ where: whereClause })
-
-    return apiResponse({
-      expenses,
-      total,
-      limit,
-      offset,
-    })
+    return apiResponse(
+      expenses.map((e) => ({
+        id: String(e.expenseId),
+        amount: Number(e.amount),
+        description: e.vendorName,
+        category: e.category.categoryName,
+        date: e.expenseDate.toISOString().split('T')[0],
+        tags: e.tags.map((t) => t.tag.tagName),
+      }))
+    )
   } catch (error) {
     return handleApiError(error)
   }
@@ -58,42 +36,42 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = await auth()
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) return apiError('Unauthorized', 401)
 
-    if (!session?.user?.id) {
-      return apiError('Unauthorized', 401)
-    }
+    const userId = parseInt((session.user as any).id)
+    const { amount, description, category, date, tags = [] } = await request.json()
 
-    const body = await request.json()
-    const validatedData = expenseSchema.parse(body)
+    const categoryRecord = await prisma.category.upsert({
+      where: { categoryName: category },
+      update: {},
+      create: { categoryName: category },
+    })
 
     const expense = await prisma.expense.create({
       data: {
-        userId: session.user.id,
-        name: validatedData.name,
-        description: validatedData.description,
-        amount: validatedData.amount,
-        expenseDate: new Date(validatedData.expenseDate),
-        categoryId: validatedData.categoryId,
-        location: validatedData.location,
-        isBillable: validatedData.isBillable,
-        status: 'DRAFT',
-      },
-      include: {
-        category: true,
-        tags: {
-          include: {
-            tag: true,
-          },
-        },
+        userId,
+        vendorName: description,
+        amount,
+        expenseDate: new Date(date),
+        categoryId: categoryRecord.categoryId,
       },
     })
 
-    return apiResponse(expense, 201)
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return apiError(error.errors[0].message, 400)
+    for (const tagName of tags as string[]) {
+      let tag = await prisma.tag.findFirst({ where: { userId, tagName } })
+      if (!tag) {
+        tag = await prisma.tag.create({
+          data: { userId, tagName, tagType: 'custom' },
+        })
+      }
+      await prisma.expenseTag.create({
+        data: { expenseId: expense.expenseId, tagId: tag.tagId },
+      })
     }
+
+    return apiResponse({ id: String(expense.expenseId) }, 201)
+  } catch (error) {
     return handleApiError(error)
   }
 }

@@ -1,38 +1,32 @@
-import NextAuth from 'next-auth'
-import Credentials from 'next-auth/providers/credentials'
+import { NextAuthOptions } from 'next-auth'
+import CredentialsProvider from 'next-auth/providers/credentials'
 import { compare } from 'bcryptjs'
 import { prisma } from './db'
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions: NextAuthOptions = {
   providers: [
-    Credentials({
+    CredentialsProvider({
+      name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Invalid credentials')
-        }
+        if (!credentials?.email || !credentials?.password) return null
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
+          where: { email: credentials.email },
         })
 
-        if (!user) {
-          throw new Error('User not found')
-        }
+        if (!user || !user.password) return null
 
-        const isPasswordValid = await compare(credentials.password as string, user.password)
-
-        if (!isPasswordValid) {
-          throw new Error('Invalid password')
-        }
+        const isValid = await compare(credentials.password, user.password)
+        if (!isValid) return null
 
         return {
-          id: user.id,
+          id: String(user.userId),
           email: user.email,
-          name: user.name,
+          name: user.fullName,
         }
       },
     }),
@@ -43,16 +37,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id
-      }
+      if (user) token.id = user.id
       return token
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string
-      }
+      if (session.user) (session.user as any).id = token.id
       return session
     },
   },
-})
+  session: { strategy: 'jwt' },
+  secret: process.env.NEXTAUTH_SECRET,
+}

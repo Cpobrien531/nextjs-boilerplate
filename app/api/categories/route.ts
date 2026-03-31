@@ -1,23 +1,13 @@
-import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { categorySchema, tagSchema } from '@/lib/validations'
 import { apiResponse, apiError, handleApiError } from '@/lib/api'
-import { ZodError } from 'zod'
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const session = await auth()
-
-    if (!session?.user?.id) {
-      return apiError('Unauthorized', 401)
-    }
-
     const categories = await prisma.category.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: 'asc' },
+      select: { categoryName: true },
+      orderBy: { categoryName: 'asc' },
     })
-
-    return apiResponse(categories)
+    return apiResponse(categories.map((c) => c.categoryName))
   } catch (error) {
     return handleApiError(error)
   }
@@ -25,42 +15,20 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = await auth()
+    const { name } = await request.json()
 
-    if (!session?.user?.id) {
-      return apiError('Unauthorized', 401)
+    if (!name?.trim()) {
+      return apiError('Category name is required', 400)
     }
 
-    const body = await request.json()
-    const validatedData = categorySchema.parse(body)
-
-    // Check if category with same name already exists for this user
-    const existingCategory = await prisma.category.findFirst({
-      where: {
-        userId: session.user.id,
-        name: validatedData.name,
-      },
+    const category = await prisma.category.upsert({
+      where: { categoryName: name.trim() },
+      update: {},
+      create: { categoryName: name.trim() },
     })
 
-    if (existingCategory) {
-      return apiError('Category with this name already exists', 400)
-    }
-
-    const category = await prisma.category.create({
-      data: {
-        userId: session.user.id,
-        name: validatedData.name,
-        icon: validatedData.icon,
-        color: validatedData.color,
-        monthlyBudget: validatedData.monthlyBudget,
-      },
-    })
-
-    return apiResponse(category, 201)
+    return apiResponse({ name: category.categoryName }, 201)
   } catch (error) {
-    if (error instanceof ZodError) {
-      return apiError(error.errors[0].message, 400)
-    }
     return handleApiError(error)
   }
 }

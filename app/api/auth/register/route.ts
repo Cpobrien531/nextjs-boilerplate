@@ -26,16 +26,16 @@ export async function POST(request: Request) {
     const user = await prisma.user.create({
       data: {
         email: validatedData.email,
-        name: validatedData.name,
+        fullName: validatedData.name,
         password: hashedPassword,
       },
     })
 
     return apiResponse(
       {
-        id: user.id,
+        id: String(user.userId),
         email: user.email,
-        name: user.name,
+        name: user.fullName,
       },
       201,
     )

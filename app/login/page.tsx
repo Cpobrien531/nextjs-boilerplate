@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -8,35 +9,25 @@ export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  })
+  const [formData, setFormData] = useState({ email: '', password: '' })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
+    const result = await signIn('credentials', {
+      email: formData.email,
+      password: formData.password,
+      redirect: false,
+    })
 
-      const data = await res.json()
+    setLoading(false)
 
-      if (!res.ok) {
-        setError(data.error || 'Login failed')
-        return
-      }
-
-      router.push('/dashboard')
-    } catch (err) {
-      setError('An error occurred. Please try again.')
-    } finally {
-      setLoading(false)
+    if (result?.ok) {
+      router.push('/')
+    } else {
+      setError('Invalid email or password')
     }
   }
 
@@ -44,7 +35,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
         <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">
-          AI Expense Tracker
+          Expense Tracker
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -82,7 +73,7 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-gray-600 mt-4">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/register" className="text-blue-500 hover:text-blue-700 font-medium">
             Register
           </Link>
