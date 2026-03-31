@@ -11,7 +11,7 @@ export async function DELETE(
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return apiError('Unauthorized', 401)
 
-    const userId = parseInt((session.user as any).id)
+    const userId = parseInt(session.user.id)
     const { id } = await params
     const expenseId = parseInt(id)
 

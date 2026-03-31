@@ -2,32 +2,13 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { apiResponse, apiError, handleApiError } from '@/lib/api'
-import { ZodError } from 'zod'
-import { Prisma, ExpenseStatus } from '@prisma/client'
 
 export async function GET() {
   try {
-    const session = await auth()
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) return apiError('Unauthorized', 401)
 
-    if (!session?.user?.id) {
-      return apiError('Unauthorized', 401)
-    }
-
-    const { searchParams } = new URL(request.url)
-    const categoryId = searchParams.get('categoryId')
-    const status = searchParams.get('status')
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const offset = parseInt(searchParams.get('offset') || '0')
-
-    const whereClause: Prisma.ExpenseWhereInput = { userId: session.user.id }
-
-    if (categoryId) {
-      whereClause.categoryId = categoryId
-    }
-
-    if (status) {
-      whereClause.status = status as ExpenseStatus
-    }
+    const userId = parseInt(session.user.id)
 
     const expenses = await prisma.expense.findMany({
       where: { userId },
@@ -58,7 +39,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) return apiError('Unauthorized', 401)
 
-    const userId = parseInt((session.user as any).id)
+    const userId = parseInt(session.user.id)
     const { amount, description, category, date, tags = [] } = await request.json()
 
     const categoryRecord = await prisma.category.upsert({
