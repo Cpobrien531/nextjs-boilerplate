@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { apiResponse, apiError, handleApiError } from '@/lib/api'
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const session = await auth()
 

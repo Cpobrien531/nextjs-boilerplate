@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { expenseSchema } from '@/lib/validations'
 import { apiResponse, apiError, handleApiError } from '@/lib/api'
 import { ZodError } from 'zod'
+import { Prisma, ExpenseStatus } from '@prisma/client'
 
 export async function GET(request: Request) {
   try {
@@ -18,14 +19,14 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    const whereClause: any = { userId: session.user.id }
+    const whereClause: Prisma.ExpenseWhereInput = { userId: session.user.id }
 
     if (categoryId) {
       whereClause.categoryId = categoryId
     }
 
     if (status) {
-      whereClause.status = status
+      whereClause.status = status as ExpenseStatus
     }
 
     const expenses = await prisma.expense.findMany({

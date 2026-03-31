@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { expenseName, description, categoryId } = body
+    const { expenseName, description } = body
 
     if (!expenseName) {
       return apiError('Expense name is required', 400)

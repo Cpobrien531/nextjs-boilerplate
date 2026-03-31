@@ -21,7 +21,7 @@ export default function Home() {
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-xl font-bold mb-3">Budget Management</h3>
             <p className="text-gray-600">
-              Set monthly budgets per category and get alerts when you're near limits
+              Set monthly budgets per category and get alerts when you&apos;re near limits
             </p>
           </div>
           <div className="bg-white rounded-lg shadow p-6">

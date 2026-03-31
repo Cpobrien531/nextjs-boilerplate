@@ -18,7 +18,7 @@ export default function DashboardPage() {
         } else {
           setIsAuthenticated(true)
         }
-      } catch (error) {
+      } catch (_error) {
         router.push('/login')
       }
     }

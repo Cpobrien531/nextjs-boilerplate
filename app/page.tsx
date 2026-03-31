@@ -11,28 +11,34 @@ const STORAGE_KEY = "expense-tracker-data";
 const CUSTOM_CATEGORIES_KEY = "expense-tracker-custom-categories";
 
 export default function Home() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [customCategories, setCustomCategories] = useState<string[]>([]);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setExpenses(JSON.parse(stored));
-      } catch (error) {
-        console.error("Failed to parse stored expenses:", error);
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (error) {
+          console.error("Failed to parse stored expenses:", error);
+          return [];
+        }
       }
     }
-
-    const storedCategories = localStorage.getItem(CUSTOM_CATEGORIES_KEY);
-    if (storedCategories) {
-      try {
-        setCustomCategories(JSON.parse(storedCategories));
-      } catch (error) {
-        console.error("Failed to parse stored categories:", error);
+    return [];
+  });
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const storedCategories = localStorage.getItem(CUSTOM_CATEGORIES_KEY);
+      if (storedCategories) {
+        try {
+          return JSON.parse(storedCategories);
+        } catch (error) {
+          console.error("Failed to parse stored categories:", error);
+          return [];
+        }
       }
     }
-  }, []);
+    return [];
+  });
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));

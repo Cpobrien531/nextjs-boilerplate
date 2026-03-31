@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { DashboardNav } from '@/components/Dashboard'
 
 interface Category {
@@ -14,7 +13,6 @@ interface Category {
 }
 
 export default function CategoriesPage() {
-  const router = useRouter()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)

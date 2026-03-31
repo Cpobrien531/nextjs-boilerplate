@@ -46,7 +46,7 @@ export default function RegisterPage() {
 
       alert('Registration successful! Please log in.')
       router.push('/login')
-    } catch (err) {
+    } catch (_err) {
       setError('An error occurred. Please try again.')
     } finally {
       setLoading(false)
