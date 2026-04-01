@@ -7,7 +7,9 @@ import { ExpenseForm, Expense } from "@/components/expense-form";
 import { ExpenseList } from "@/components/expense-list";
 import { ExpenseStats } from "@/components/expense-stats";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, LogOut } from "lucide-react";
+import { DollarSign, LogOut, PiggyBank, FileDown } from "lucide-react";
+import Link from "next/link";
+
 
 const DEFAULT_CATEGORIES = [
   "Food & Dining",
@@ -97,13 +99,29 @@ export default function Home() {
               Welcome, {session?.user?.name}
             </p>
           </div>
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mt-1"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </button>
+          <div className="flex items-center gap-4 mt-1">
+            <Link
+              href="/budget"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <PiggyBank className="h-4 w-4" />
+              Budget
+            </Link>
+            <Link
+              href="/export"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <FileDown className="h-4 w-4" />
+              Export
+            </Link>
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </div>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
