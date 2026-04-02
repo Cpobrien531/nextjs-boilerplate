@@ -2,29 +2,8 @@ import { prisma } from '@/lib/db'
 import { categorySchema } from '@/lib/validations'
 import { apiResponse, apiError, handleApiError } from '@/lib/api'
 
-const DEFAULT_CATEGORIES = [
-  "Food & Dining",
-  "Transportation",
-  "Shopping",
-  "Entertainment",
-  "Bills & Utilities",
-  "Healthcare",
-  "Education",
-  "Travel",
-  "Other",
-]
-
 export async function GET(_request: Request) {
   try {
-    // Ensure default categories exist
-    for (const categoryName of DEFAULT_CATEGORIES) {
-      await prisma.category.upsert({
-        where: { categoryName },
-        update: {},
-        create: { categoryName },
-      })
-    }
-
     const categories = await prisma.category.findMany({
       select: { categoryName: true },
       orderBy: { categoryName: 'asc' },
