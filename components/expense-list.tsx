@@ -11,12 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Trash2, Filter, Receipt, Tag } from "lucide-react";
+import { Trash2, Filter, Receipt, Tag, Edit2 } from "lucide-react";
 import { Expense } from "./expense-form";
+import { ExpenseEditDialog } from "./expense-edit-dialog";
 
 interface ExpenseListProps {
   expenses: Expense[];
   onDeleteExpense: (id: string) => void;
+  onEditExpense: (expense: Expense) => void;
   customCategories?: string[];
   title?: string;
   limitSelector?: ReactNode;
@@ -34,10 +36,11 @@ const DEFAULT_CATEGORIES = [
   "Other",
 ];
 
-export function ExpenseList({ expenses, onDeleteExpense, customCategories = [], title = "Expense History", limitSelector }: ExpenseListProps) {
+export function ExpenseList({ expenses, onDeleteExpense, onEditExpense, customCategories = [], title = "Expense History", limitSelector }: ExpenseListProps) {
   const [filterCategory, setFilterCategory] = useState("All");
   const [filterTag, setFilterTag] = useState("All");
   const [sortBy, setSortBy] = useState<"date" | "amount">("date");
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   const allCategories = ["All", ...DEFAULT_CATEGORIES, ...customCategories];
 
@@ -196,7 +199,18 @@ export function ExpenseList({ expenses, onDeleteExpense, customCategories = [], 
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onDeleteExpense(expense.id)}
+                        onClick={() => setEditingExpense(expense)}
+                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          console.log('Delete button clicked for expense:', expense.id);
+                          onDeleteExpense(expense.id);
+                        }}
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -208,6 +222,19 @@ export function ExpenseList({ expenses, onDeleteExpense, customCategories = [], 
             ))}
           </div>
         )}
+
+      {editingExpense && (
+        <ExpenseEditDialog
+          open={!!editingExpense}
+          expense={editingExpense}
+          onSave={(updatedExpense) => {
+            onEditExpense(updatedExpense);
+            setEditingExpense(null);
+          }}
+          onClose={() => setEditingExpense(null)}
+          customCategories={customCategories}
+        />
+      )}
       </CardContent>
     </Card>
   );

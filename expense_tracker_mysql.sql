@@ -17,6 +17,7 @@ CREATE TABLE user (
   user_id               INT             NOT NULL AUTO_INCREMENT,
   full_name             VARCHAR(150)    NOT NULL,
   email                 VARCHAR(255)    NOT NULL,
+  password_hash         VARCHAR(255)    NOT NULL,
   account_created_date  DATE            NOT NULL DEFAULT (CURRENT_DATE),
   date_retention_years  TINYINT         NOT NULL DEFAULT 7,
 
