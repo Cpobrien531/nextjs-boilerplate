@@ -42,7 +42,7 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense, customCa
   const [sortBy, setSortBy] = useState<"date" | "amount">("date");
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
-  const allCategories = ["All", ...DEFAULT_CATEGORIES, ...customCategories];
+  const allCategories = ["All", ...new Set([...DEFAULT_CATEGORIES, ...customCategories])];
 
   // Get all unique tags from expenses
   const allTags = Array.from(
