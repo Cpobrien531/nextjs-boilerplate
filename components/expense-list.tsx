@@ -24,25 +24,13 @@ interface ExpenseListProps {
   limitSelector?: ReactNode;
 }
 
-const DEFAULT_CATEGORIES = [
-  "Food & Dining",
-  "Transportation",
-  "Shopping",
-  "Entertainment",
-  "Bills & Utilities",
-  "Healthcare",
-  "Education",
-  "Travel",
-  "Other",
-];
-
 export function ExpenseList({ expenses, onDeleteExpense, onEditExpense, customCategories = [], title = "Expense History", limitSelector }: ExpenseListProps) {
   const [filterCategory, setFilterCategory] = useState("All");
   const [filterTag, setFilterTag] = useState("All");
   const [sortBy, setSortBy] = useState<"date" | "amount">("date");
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
-  const allCategories = ["All", ...new Set([...DEFAULT_CATEGORIES, ...customCategories])];
+  const allCategories = ["All", ...new Set([...customCategories])];
 
   // Get all unique tags from expenses
   const allTags = Array.from(
