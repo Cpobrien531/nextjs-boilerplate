@@ -26,14 +26,6 @@ export default function ExpensesPage() {
     status: '',
   })
 
-  useEffect(() => {
-    fetchCategories()
-  }, [])
-
-  useEffect(() => {
-    fetchExpenses()
-  }, [filters, fetchExpenses])
-
   const fetchCategories = async () => {
     try {
       const res = await fetch('/api/categories')
@@ -63,6 +55,14 @@ export default function ExpensesPage() {
       setLoading(false)
     }
   }, [filters])
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  useEffect(() => {
+    fetchExpenses()
+  }, [filters, fetchExpenses])
 
   const handleExport = async () => {
     try {

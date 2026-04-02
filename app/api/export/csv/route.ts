@@ -12,30 +12,52 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
+    const categoryId = searchParams.get('categoryId')
+    const tagId = searchParams.get('tagId')
 
     if (!startDate || !endDate) {
       return apiError('startDate and endDate are required', 400)
     }
 
-    const expenses = await prisma.expense.findMany({
-      where: {
-        userId,
-        expenseDate: {
-          gte: new Date(startDate),
-          lte: new Date(endDate),
-        },
+    const where: { userId: number; expenseDate: { gte: Date; lte: Date }; categoryId?: number } = {
+      userId,
+      expenseDate: {
+        gte: new Date(startDate),
+        lte: new Date(endDate),
       },
-      include: { category: true },
+    }
+
+    if (categoryId) {
+      where.categoryId = parseInt(categoryId)
+    }
+
+    const expenses = await prisma.expense.findMany({
+      where,
+      include: { 
+        category: true,
+        tags: { include: { tag: true } }
+      },
       orderBy: { expenseDate: 'asc' },
     })
 
+    // Filter by tag if specified
+    let filteredExpenses = expenses
+    if (tagId) {
+      const tagIdNum = parseInt(tagId)
+      filteredExpenses = expenses.filter(e => 
+        e.tags.some(et => et.tagId === tagIdNum)
+      )
+    }
+
     const rows = [
-      ['Date', 'Vendor', 'Category', 'Amount', 'Billable'],
-      ...expenses.map((e) => [
+      ['Date', 'Vendor', 'Category', 'Amount', 'Tags', 'Description', 'Billable'],
+      ...filteredExpenses.map((e) => [
         e.expenseDate.toISOString().split('T')[0],
         `"${e.vendorName.replace(/"/g, '""')}"`,
         `"${e.category.categoryName.replace(/"/g, '""')}"`,
         Number(e.amount).toFixed(2),
+        `"${e.tags.map(t => t.tag.tagName).join(', ').replace(/"/g, '""')}"`,
+        `"${(e.description || '').replace(/"/g, '""')}"`,
         e.isBillable ? 'Yes' : 'No',
       ]),
     ]

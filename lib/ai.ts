@@ -41,7 +41,7 @@ Respond ONLY with a valid JSON object in this exact format:
 
 The confidence should be a number between 0 and 1 indicating how confident you are in this categorization.`
 
-    const response = await openai.messages.create({
+    const response = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
       max_tokens: 200,
       messages: [
@@ -53,8 +53,8 @@ The confidence should be a number between 0 and 1 indicating how confident you a
     })
 
     let responseText = ''
-    if (response.content[0].type === 'text') {
-      responseText = response.content[0].text
+    if (response.choices[0].message && 'content' in response.choices[0].message) {
+      responseText = response.choices[0].message.content || ''
     }
 
     // Clean up the response - remove markdown code blocks if present
@@ -88,7 +88,7 @@ ${expenseList}
 
 Provide a concise summary (2-3 sentences) highlighting spending patterns and recommendations.`
 
-    const response = await openai.messages.create({
+    const response = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
       max_tokens: 300,
       messages: [
@@ -99,8 +99,8 @@ Provide a concise summary (2-3 sentences) highlighting spending patterns and rec
       ],
     })
 
-    if (response.content[0].type === 'text') {
-      return response.content[0].text
+    if (response.choices[0].message && 'content' in response.choices[0].message) {
+      return response.choices[0].message.content || 'Unable to generate summary'
     }
 
     return 'Unable to generate summary'

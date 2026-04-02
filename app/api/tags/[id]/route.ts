@@ -1,26 +1,32 @@
-import { auth } from '@/lib/auth'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { tagSchema } from '@/lib/validations'
 import { apiResponse, apiError, handleApiError } from '@/lib/api'
-import { ZodError } from 'zod'
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const session = await auth()
+    const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
       return apiError('Unauthorized', 401)
     }
 
+    const userId = parseInt(session.user.id)
+    const { id } = await params
+    const tagId = parseInt(id)
+
     const tag = await prisma.tag.findUnique({
-      where: { id: params.id },
+      where: { tagId },
     })
 
     if (!tag) {
       return apiError('Tag not found', 404)
     }
 
-    if (tag.userId !== session.user.id) {
+    if (tag.userId !== userId) {
       return apiError('Forbidden', 403)
     }
 
@@ -30,68 +36,78 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const session = await auth()
+    const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
       return apiError('Unauthorized', 401)
     }
 
+    const userId = parseInt(session.user.id)
+    const { id } = await params
+    const tagId = parseInt(id)
+
     const tag = await prisma.tag.findUnique({
-      where: { id: params.id },
+      where: { tagId },
     })
 
     if (!tag) {
       return apiError('Tag not found', 404)
     }
 
-    if (tag.userId !== session.user.id) {
+    if (tag.userId !== userId) {
       return apiError('Forbidden', 403)
     }
 
     const body = await request.json()
-    const validatedData = tagSchema.parse(body)
+    const { tagName } = body
 
     const updatedTag = await prisma.tag.update({
-      where: { id: params.id },
+      where: { tagId },
       data: {
-        name: validatedData.name,
-        color: validatedData.color,
+        ...(tagName && { tagName }),
       },
     })
 
     return apiResponse(updatedTag)
   } catch (error) {
-    if (error instanceof ZodError) {
-      return apiError(error.errors[0].message, 400)
-    }
     return handleApiError(error)
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const session = await auth()
+    const session = await getServerSession(authOptions)
 
     if (!session?.user?.id) {
       return apiError('Unauthorized', 401)
     }
 
+    const userId = parseInt(session.user.id)
+    const { id } = await params
+    const tagId = parseInt(id)
+
     const tag = await prisma.tag.findUnique({
-      where: { id: params.id },
+      where: { tagId },
     })
 
     if (!tag) {
       return apiError('Tag not found', 404)
     }
 
-    if (tag.userId !== session.user.id) {
+    if (tag.userId !== userId) {
       return apiError('Forbidden', 403)
     }
 
     await prisma.tag.delete({
-      where: { id: params.id },
+      where: { tagId },
     })
 
     return apiResponse({ message: 'Tag deleted successfully' })

@@ -1,48 +1,35 @@
-import { ExpenseStatus } from '@prisma/client'
-
 export type User = {
   id: string
   email: string
   name: string
-  budgetAlertThreshold: number
   createdAt: Date
   updatedAt: Date
 }
 
 export type Category = {
-  id: string
-  userId: string
-  name: string
-  icon?: string | null
-  color: string
-  monthlyBudget: number
-  currentMonthSpent: number
-  createdAt: Date
+  categoryId: string | number
+  categoryName: string
+  categoryDescription?: string | null
 }
 
 export type Tag = {
-  id: string
-  userId: string
-  name: string
-  color: string
-  createdAt: Date
+  tagId: string | number
+  userId: number
+  tagName: string
+  tagType: string
 }
 
 export type Expense = {
-  id: string
-  userId: string
-  categoryId: string
-  name: string
+  expenseId: string | number
+  userId: number
+  categoryId: number
+  vendorName: string
   description?: string | null
   amount: number
   expenseDate: Date
-  location?: string | null
-  receiptImageURL?: string | null
-  receiptImagePath?: string | null
   isBillable: boolean
-  status: ExpenseStatus
-  createdAt: Date
-  lastModifiedDate: Date
+  createdTimestamp: Date
+  lastModifiedTimestamp: Date
 }
 
 export type ExpenseWithRelations = Expense & {
