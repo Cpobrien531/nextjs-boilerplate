@@ -28,18 +28,6 @@ interface CategorySelectProps {
   onDeleteCustomCategory?: (category: string) => void;
 }
 
-const DEFAULT_CATEGORIES = [
-  "Food & Dining",
-  "Transportation",
-  "Shopping",
-  "Entertainment",
-  "Bills & Utilities",
-  "Healthcare",
-  "Education",
-  "Travel",
-  "Other",
-];
-
 export function CategorySelect({
   value,
   onValueChange,
@@ -50,7 +38,7 @@ export function CategorySelect({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
 
-  const allCategories = [...new Set([...DEFAULT_CATEGORIES, ...customCategories])];
+  const allCategories = [...new Set([...customCategories])];
 
   const handleAddCategory = () => {
     const trimmed = newCategory.trim();
