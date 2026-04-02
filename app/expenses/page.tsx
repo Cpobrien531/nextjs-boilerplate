@@ -6,26 +6,15 @@ import { DashboardNav } from '@/components/Dashboard'
 interface Category {
   id: string
   name: string
-  color: string
-}
-
-interface Tag {
-  id: string
-  name: string
-  color: string
 }
 
 interface Expense {
   id: string
-  name: string
+  description: string
   amount: number
-  expenseDate: string
-  category: Category
-  description?: string
-  location?: string
-  isBillable: boolean
-  status: string
-  tags?: { tag: Tag }[]
+  date: string
+  category: string
+  tags: string[]
 }
 
 export default function ExpensesPage() {
@@ -66,7 +55,7 @@ export default function ExpensesPage() {
       const res = await fetch(`/api/expenses?${params.toString()}`)
       const data = await res.json()
       if (data.success) {
-        setExpenses(data.data.expenses)
+        setExpenses(data.data)
       }
     } catch (error) {
       console.error('Error fetching expenses:', error)
@@ -157,7 +146,6 @@ export default function ExpensesPage() {
                   <th className="px-6 py-3 text-left text-gray-900 font-medium">Name</th>
                   <th className="px-6 py-3 text-left text-gray-900 font-medium">Category</th>
                   <th className="px-6 py-3 text-left text-gray-900 font-medium">Amount</th>
-                  <th className="px-6 py-3 text-left text-gray-900 font-medium">Status</th>
                   <th className="px-6 py-3 text-left text-gray-900 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -165,29 +153,15 @@ export default function ExpensesPage() {
                 {expenses.map((expense) => (
                   <tr key={expense.id} className="border-t hover:bg-gray-50">
                     <td className="px-6 py-4">
-                      {new Date(expense.expenseDate).toLocaleDateString()}
+                      {new Date(expense.date).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4">{expense.name}</td>
+                    <td className="px-6 py-4">{expense.description}</td>
                     <td className="px-6 py-4">
-                      <span
-                        className="px-3 py-1 rounded text-white text-sm"
-                        style={{ backgroundColor: expense.category.color }}
-                      >
-                        {expense.category.name}
+                      <span className="px-3 py-1 rounded bg-gray-200 text-gray-800 text-sm">
+                        {expense.category}
                       </span>
                     </td>
                     <td className="px-6 py-4 font-medium">${expense.amount.toFixed(2)}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          expense.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' : ''
-                        } ${expense.status === 'SAVED' ? 'bg-blue-100 text-blue-800' : ''} ${
-                          expense.status === 'CATEGORIZED' ? 'bg-green-100 text-green-800' : ''
-                        }`}
-                      >
-                        {expense.status}
-                      </span>
-                    </td>
                     <td className="px-6 py-4">
                       <button className="text-blue-500 hover:text-blue-700 mr-4 text-sm">
                         Edit

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -17,6 +18,8 @@ interface ExpenseListProps {
   expenses: Expense[];
   onDeleteExpense: (id: string) => void;
   customCategories?: string[];
+  title?: string;
+  limitSelector?: ReactNode;
 }
 
 const DEFAULT_CATEGORIES = [
@@ -31,7 +34,7 @@ const DEFAULT_CATEGORIES = [
   "Other",
 ];
 
-export function ExpenseList({ expenses, onDeleteExpense, customCategories = [] }: ExpenseListProps) {
+export function ExpenseList({ expenses, onDeleteExpense, customCategories = [], title = "Expense History", limitSelector }: ExpenseListProps) {
   const [filterCategory, setFilterCategory] = useState("All");
   const [filterTag, setFilterTag] = useState("All");
   const [sortBy, setSortBy] = useState<"date" | "amount">("date");
@@ -70,9 +73,12 @@ export function ExpenseList({ expenses, onDeleteExpense, customCategories = [] }
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Receipt className="h-5 w-5" />
-          Expense History
+        <CardTitle className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2">
+            <Receipt className="h-5 w-5" />
+            {title}
+          </span>
+          {limitSelector}
         </CardTitle>
       </CardHeader>
       <CardContent>

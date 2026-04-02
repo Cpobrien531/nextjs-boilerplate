@@ -11,13 +11,11 @@ interface Category {
 
 interface Expense {
   id: string
-  name: string
+  description: string
   amount: number
-  expenseDate: string
-  category: Category
-  description?: string
-  location?: string
-  isBillable: boolean
+  date: string
+  category: string
+  tags: string[]
 }
 
 export function ExpenseForm() {
@@ -235,7 +233,7 @@ export function ExpenseList() {
       try {
         const res = await fetch('/api/expenses')
         const data = await res.json()
-        setExpenses(data.data.expenses)
+        setExpenses(data.data)
       } catch (error) {
         console.error('Error fetching expenses:', error)
       } finally {
@@ -266,15 +264,12 @@ export function ExpenseList() {
           {expenses.map((expense) => (
             <tr key={expense.id} className="border-t hover:bg-gray-50">
               <td className="px-6 py-4">
-                {new Date(expense.expenseDate).toLocaleDateString()}
+                {new Date(expense.date).toLocaleDateString()}
               </td>
-              <td className="px-6 py-4">{expense.name}</td>
+              <td className="px-6 py-4">{expense.description}</td>
               <td className="px-6 py-4">
-                <span
-                  className="px-3 py-1 rounded text-white text-sm"
-                  style={{ backgroundColor: expense.category.color }}
-                >
-                  {expense.category.name}
+                <span className="px-3 py-1 rounded bg-gray-200 text-gray-800 text-sm">
+                  {expense.category}
                 </span>
               </td>
               <td className="px-6 py-4 font-medium">${expense.amount.toFixed(2)}</td>

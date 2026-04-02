@@ -28,6 +28,7 @@ export default function Home() {
   const router = useRouter();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [recentLimit, setRecentLimit] = useState(5);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -135,9 +136,21 @@ export default function Home() {
             <ExpenseStats expenses={expenses} />
             {expenses.length > 0 && (
               <ExpenseList
-                expenses={expenses.slice(0, 5)}
+                expenses={expenses.slice(0, recentLimit)}
                 onDeleteExpense={handleDeleteExpense}
                 customCategories={customCategories}
+                title="Recent Expenses"
+                limitSelector={
+                  <select
+                    value={recentLimit}
+                    onChange={(e) => setRecentLimit(Number(e.target.value))}
+                    className="text-sm border border-input rounded px-2 py-1 bg-background"
+                  >
+                    {[5, 10, 15, 20].map((n) => (
+                      <option key={n} value={n}>Last {n}</option>
+                    ))}
+                  </select>
+                }
               />
             )}
           </TabsContent>
