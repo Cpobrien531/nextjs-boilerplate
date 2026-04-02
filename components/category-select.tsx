@@ -10,7 +10,7 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { PlusCircle, Check } from "lucide-react";
+import { PlusCircle, Check, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,7 @@ interface CategorySelectProps {
   onValueChange: (value: string) => void;
   customCategories: string[];
   onAddCustomCategory: (category: string) => void;
+  onDeleteCustomCategory?: (category: string) => void;
 }
 
 const DEFAULT_CATEGORIES = [
@@ -44,11 +45,12 @@ export function CategorySelect({
   onValueChange,
   customCategories,
   onAddCustomCategory,
+  onDeleteCustomCategory,
 }: CategorySelectProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
 
-  const allCategories = [...DEFAULT_CATEGORIES, ...customCategories];
+  const allCategories = [...new Set([...DEFAULT_CATEGORIES, ...customCategories])];
 
   const handleAddCategory = () => {
     const trimmed = newCategory.trim();
@@ -77,23 +79,11 @@ export function CategorySelect({
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
-              {DEFAULT_CATEGORIES.map((cat) => (
+              {allCategories.map((cat) => (
                 <SelectItem key={cat} value={cat}>
                   {cat}
                 </SelectItem>
               ))}
-              {customCategories.length > 0 && (
-                <>
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                    Custom Categories
-                  </div>
-                  {customCategories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </>
-              )}
             </SelectContent>
           </Select>
           <Button
@@ -111,16 +101,15 @@ export function CategorySelect({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Custom Category</DialogTitle>
+            <DialogTitle>Manage Categories</DialogTitle>
             <DialogDescription>
-              Create a new category for your expenses. This will be saved and
-              available for future use.
+              Add new categories or delete existing ones. Note: Categories with expenses cannot be deleted.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="new-category">Category Name</Label>
+              <Label htmlFor="new-category">Add Category Name</Label>
               <Input
                 id="new-category"
                 placeholder="e.g., Pet Care, Subscriptions, Gifts"
@@ -131,16 +120,28 @@ export function CategorySelect({
               />
             </div>
 
-            {customCategories.length > 0 && (
+            {allCategories.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm font-medium">Your Custom Categories:</p>
-                <div className="flex flex-wrap gap-2">
-                  {customCategories.map((cat) => (
+                <p className="text-sm font-medium">All Categories ({allCategories.length}):</p>
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-2 bg-muted rounded">
+                  {allCategories.map((cat) => (
                     <div
                       key={cat}
-                      className="text-xs px-2 py-1 bg-secondary rounded-md"
+                      className="text-xs px-2 py-1 bg-secondary rounded-md flex items-center gap-2"
                     >
-                      {cat}
+                      <span>{cat}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onDeleteCustomCategory) {
+                            onDeleteCustomCategory(cat);
+                          }
+                        }}
+                        className="hover:bg-destructive/20 rounded p-0.5 transition-colors"
+                        title="Delete category"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
                   ))}
                 </div>

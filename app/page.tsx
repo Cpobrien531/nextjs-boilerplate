@@ -10,19 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DollarSign, LogOut, PiggyBank, FileDown } from "lucide-react";
 import Link from "next/link";
 
-
-const DEFAULT_CATEGORIES = [
-  "Food & Dining",
-  "Transportation",
-  "Shopping",
-  "Entertainment",
-  "Bills & Utilities",
-  "Healthcare",
-  "Education",
-  "Travel",
-  "Other",
-];
-
 export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -44,10 +31,7 @@ export default function Home() {
     const res = await fetch("/api/categories");
     const json = await res.json();
     if (json.success) {
-      const custom = (json.data as string[]).filter(
-        (c) => !DEFAULT_CATEGORIES.includes(c)
-      );
-      setCustomCategories(custom);
+      setCustomCategories(json.data as string[]);
     }
   }, []);
 
@@ -81,6 +65,13 @@ export default function Home() {
     setCustomCategories((prev) =>
       prev.includes(category) ? prev : [...prev, category]
     );
+  };
+
+  const handleDeleteCustomCategory = async (category: string) => {
+    await fetch(`/api/categories?name=${encodeURIComponent(category)}`, {
+      method: "DELETE",
+    });
+    setCustomCategories((prev) => prev.filter((c) => c !== category));
   };
 
   if (status === "loading" || status === "unauthenticated") return null;
@@ -160,6 +151,7 @@ export default function Home() {
               onAddExpense={handleAddExpense}
               customCategories={customCategories}
               onAddCustomCategory={handleAddCustomCategory}
+              onDeleteCustomCategory={handleDeleteCustomCategory}
             />
           </TabsContent>
 
