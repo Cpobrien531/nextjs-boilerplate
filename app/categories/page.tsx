@@ -2,14 +2,28 @@
 
 import { useState, useEffect } from 'react'
 import { DashboardNav } from '@/components/Dashboard'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Trash2, Edit2 } from 'lucide-react'
 
 interface Category {
-  id: string
-  name: string
-  icon?: string
-  color: string
-  monthlyBudget: number
-  currentMonthSpent: number
+  categoryId: string | number
+  categoryName: string
+  categoryDescription?: string
+}
+
+interface EditFormData {
+  categoryName: string
+  categoryDescription?: string
 }
 
 export default function CategoriesPage() {
@@ -17,9 +31,13 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
-    name: '',
-    color: '#808080',
-    monthlyBudget: '',
+    categoryName: '',
+    categoryDescription: '',
+  })
+  const [editingId, setEditingId] = useState<string | number | null>(null)
+  const [editFormData, setEditFormData] = useState<EditFormData>({
+    categoryName: '',
+    categoryDescription: '',
   })
 
   useEffect(() => {
@@ -48,17 +66,15 @@ export default function CategoriesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: formData.name,
-          color: formData.color,
-          monthlyBudget: parseFloat(formData.monthlyBudget || '0'),
+          categoryName: formData.categoryName,
+          categoryDescription: formData.categoryDescription,
         }),
       })
 
       if (res.ok) {
-        alert('Category created successfully!')
-        setFormData({ name: '', color: '#808080', monthlyBudget: '' })
+        setFormData({ categoryName: '', categoryDescription: '' })
         setShowForm(false)
-        fetchCategories()
+        await fetchCategories()
       } else {
         alert('Error creating category')
       }
@@ -68,7 +84,38 @@ export default function CategoriesPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleStartEdit = (category: Category) => {
+    setEditingId(category.categoryId)
+    setEditFormData({
+      categoryName: category.categoryName,
+      categoryDescription: category.categoryDescription || '',
+    })
+  }
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingId) return
+
+    try {
+      const res = await fetch(`/api/categories/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editFormData),
+      })
+
+      if (res.ok) {
+        setEditingId(null)
+        await fetchCategories()
+      } else {
+        alert('Error updating category')
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error updating category')
+    }
+  }
+
+  const handleDelete = async (id: string | number) => {
     if (confirm('Are you sure you want to delete this category?')) {
       try {
         const res = await fetch(`/api/categories/${id}`, {
@@ -76,8 +123,7 @@ export default function CategoriesPage() {
         })
 
         if (res.ok) {
-          alert('Category deleted successfully!')
-          fetchCategories()
+          await fetchCategories()
         } else {
           alert('Error deleting category')
         }
@@ -94,57 +140,45 @@ export default function CategoriesPage() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Categories</h1>
-          <button
+          <Button
             onClick={() => setShowForm(!showForm)}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            className="gap-2"
           >
-            {showForm ? 'Cancel' : 'Add Category'}
-          </button>
+            {showForm ? 'Cancel' : '+ Add Category'}
+          </Button>
         </div>
 
         {showForm && (
           <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow mb-8">
             <div className="mb-4">
-              <label className="block text-gray-700 font-medium mb-2">Category Name *</label>
-              <input
+              <Label htmlFor="name">Category Name *</Label>
+              <Input
+                id="name"
                 type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded"
+                value={formData.categoryName}
+                onChange={(e) => setFormData({ ...formData, categoryName: e.target.value })}
+                className="mt-1"
                 required
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">Color</label>
-                <input
-                  type="color"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded h-10"
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">
-                  Monthly Budget
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.monthlyBudget}
-                  onChange={(e) => setFormData({ ...formData, monthlyBudget: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded"
-                />
-              </div>
+            <div className="mb-4">
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                type="text"
+                value={formData.categoryDescription}
+                onChange={(e) => setFormData({ ...formData, categoryDescription: e.target.value })}
+                className="mt-1"
+              />
             </div>
 
-            <button
+            <Button
               type="submit"
-              className="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              className="w-full"
             >
               Create Category
-            </button>
+            </Button>
           </form>
         )}
 
@@ -154,46 +188,78 @@ export default function CategoriesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {categories.map((category) => (
               <div
-                key={category.id}
-                className="bg-white rounded-lg shadow p-6 border-t-4"
-                style={{ borderTopColor: category.color }}
+                key={category.categoryId}
+                className="bg-white rounded-lg shadow p-6"
               >
-                <h3 className="text-lg font-bold mb-2">{category.name}</h3>
-                {category.monthlyBudget > 0 && (
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm text-gray-600 mb-2">
-                      <span>Budget</span>
-                      <span>
-                        ${category.currentMonthSpent.toFixed(2)} / $
-                        {category.monthlyBudget.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full"
-                        style={{
-                          width: `${Math.min(
-                            (category.currentMonthSpent / category.monthlyBudget) * 100,
-                            100,
-                          )}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
+                <h3 className="text-lg font-bold mb-2">{category.categoryName}</h3>
+                {category.categoryDescription && (
+                  <p className="text-sm text-gray-600 mb-4">{category.categoryDescription}</p>
                 )}
                 <div className="flex justify-end gap-2">
-                  <button className="text-blue-500 hover:text-blue-700 text-sm">Edit</button>
-                  <button
-                    onClick={() => handleDelete(category.id)}
-                    className="text-red-500 hover:text-red-700 text-sm"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStartEdit(category)}
+                    className="gap-1"
                   >
+                    <Edit2 className="h-4 w-4" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDelete(category.categoryId)}
+                    className="gap-1"
+                  >
+                    <Trash2 className="h-4 w-4" />
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
         )}
+
+        <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Category</DialogTitle>
+              <DialogDescription>
+                Update the category details below.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleSaveEdit} className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Category Name *</Label>
+                <Input
+                  id="edit-name"
+                  type="text"
+                  value={editFormData.categoryName}
+                  onChange={(e) => setEditFormData({ ...editFormData, categoryName: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Input
+                  id="edit-description"
+                  type="text"
+                  value={editFormData.categoryDescription || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, categoryDescription: e.target.value })}
+                />
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setEditingId(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

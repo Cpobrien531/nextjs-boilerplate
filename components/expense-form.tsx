@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Zap } from "lucide-react";
 import { ReceiptScanner } from "./receipt-scanner";
 import { Separator } from "./ui/separator";
 import { TagInput } from "./tag-input";
@@ -32,6 +32,48 @@ export function ExpenseForm({ onAddExpense, customCategories, onAddCustomCategor
   const [category, setCategory] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [tags, setTags] = useState<string[]>([]);
+  const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
+  const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
+  const suggestionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const getAutoSuggestion = useCallback(async (desc: string) => {
+    if (!desc || desc.length < 3) {
+      setSuggestedCategory(null);
+      return;
+    }
+
+    setIsLoadingSuggestion(true);
+    try {
+      const res = await fetch("/api/ai/categorize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expenseName: desc }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestedCategory(data.suggestedCategory || null);
+      }
+    } catch {
+      // Silently fail for auto-suggestions
+    } finally {
+      setIsLoadingSuggestion(false);
+    }
+  }, []);
+
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setDescription(value);
+
+    // Debounce the API call
+    if (suggestionTimeoutRef.current) {
+      clearTimeout(suggestionTimeoutRef.current);
+    }
+
+    suggestionTimeoutRef.current = setTimeout(() => {
+      getAutoSuggestion(value);
+    }, 500);
+  };
 
   const handleScanComplete = (result: {
     amount: number;
@@ -43,6 +85,13 @@ export function ExpenseForm({ onAddExpense, customCategories, onAddCustomCategor
     setDescription(result.description);
     setCategory(result.category);
     setDate(result.date);
+  };
+
+  const handleAcceptSuggestion = () => {
+    if (suggestedCategory) {
+      setCategory(suggestedCategory);
+      setSuggestedCategory(null);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -69,6 +118,7 @@ export function ExpenseForm({ onAddExpense, customCategories, onAddCustomCategor
     setCategory("");
     setDate(new Date().toISOString().split("T")[0]);
     setTags([]);
+    setSuggestedCategory(null);
   };
 
   return (
@@ -117,14 +167,38 @@ export function ExpenseForm({ onAddExpense, customCategories, onAddCustomCategor
 
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-            <Input
-              id="description"
-              type="text"
-              placeholder="Enter expense description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Input
+                id="description"
+                type="text"
+                placeholder="Enter expense description"
+                value={description}
+                onChange={handleDescriptionChange}
+                required
+              />
+              {suggestedCategory && !category && (
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleAcceptSuggestion}
+                    className="gap-1 text-xs"
+                    title={`Apply suggested category: ${suggestedCategory}`}
+                  >
+                    <Zap className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            {isLoadingSuggestion && (
+              <p className="text-xs text-muted-foreground">Searching your past expenses...</p>
+            )}
+            {suggestedCategory && !category && (
+              <p className="text-xs text-green-600 dark:text-green-400">
+                Suggested category: <strong>{suggestedCategory}</strong>
+              </p>
+            )}
           </div>
 
           <CategorySelect

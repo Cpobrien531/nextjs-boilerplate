@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
+import { TooltipProps } from "recharts";
 
 import { cn } from "./utils";
 
@@ -120,10 +121,10 @@ function ChartTooltipContent({
   labelKey,
 }: {
   active?: boolean;
-  payload?: TooltipPayloadEntry[];
+  payload?: any[];
   label?: string;
-  labelFormatter?: (label: unknown, payload: TooltipPayloadEntry[]) => React.ReactNode;
-  formatter?: (value: TooltipValueType, name: string | number, item: TooltipPayloadEntry, index: number, payload: TooltipPayloadEntry) => React.ReactNode;
+  labelFormatter?: (label: unknown, payload: any[]) => React.ReactNode;
+  formatter?: (value: any, name: string | number, item: any, index: number, payload: any[]) => React.ReactNode;
   color?: string;
   className?: string;
   labelClassName?: string;
@@ -263,11 +264,12 @@ function ChartLegendContent({
   payload,
   verticalAlign = "bottom",
   nameKey,
-}: React.ComponentProps<"div"> &
-  Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
-    hideIcon?: boolean;
-    nameKey?: string;
-  }) {
+}: React.ComponentProps<"div"> & {
+  payload?: any[];
+  verticalAlign?: "top" | "bottom" | "middle";
+  hideIcon?: boolean;
+  nameKey?: string;
+}) {
   const { config } = useChart();
 
   if (!payload?.length) {

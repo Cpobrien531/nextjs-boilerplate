@@ -3,6 +3,57 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { apiResponse, apiError, handleApiError } from '@/lib/api'
 
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) return apiError('Unauthorized', 401)
+
+    const userId = parseInt(session.user.id)
+    const { id } = await params
+    const budgetId = parseInt(id)
+
+    if (isNaN(budgetId)) return apiError('Invalid budget ID', 400)
+
+    const budget = await prisma.budget.findUnique({ where: { budgetId } })
+    if (!budget) return apiError('Budget not found', 404)
+    if (budget.userId !== userId) return apiError('Forbidden', 403)
+
+    const { budgetAmount, applyToFutureMonths } = await request.json()
+
+    // Update the current budget
+    const updatedBudget = await prisma.budget.update({
+      where: { budgetId },
+      data: { budgetAmount },
+      include: { category: true },
+    })
+
+    // If applyToFutureMonths is true, update all future months for the same category
+    if (applyToFutureMonths) {
+      await prisma.budget.updateMany({
+        where: {
+          userId,
+          categoryId: budget.categoryId,
+          OR: [
+            { year: { gt: budget.year } },
+            {
+              year: budget.year,
+              month: { gt: budget.month },
+            },
+          ],
+        },
+        data: { budgetAmount },
+      })
+    }
+
+    return apiResponse(updatedBudget)
+  } catch (error) {
+    return handleApiError(error)
+  }
+}
+
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { ExpenseForm, Expense } from "@/components/expense-form";
 import { ExpenseList } from "@/components/expense-list";
 import { ExpenseStats } from "@/components/expense-stats";
+import { QuickAddExpenseDialog } from "@/components/quick-add-expense-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, LogOut, PiggyBank, FileDown } from "lucide-react";
+import { DollarSign, LogOut, PiggyBank, FileDown, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export default function Home() {
@@ -16,6 +18,7 @@ export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [recentLimit, setRecentLimit] = useState(5);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -52,8 +55,18 @@ export default function Home() {
   };
 
   const handleDeleteExpense = async (id: string) => {
+    console.log('handleDeleteExpense called with id:', id);
     await fetch(`/api/expenses/${id}`, { method: "DELETE" });
-    setExpenses((prev) => prev.filter((e) => e.id !== id));
+    await fetchExpenses();
+  };
+
+  const handleEditExpense = async (expense: Expense) => {
+    await fetch(`/api/expenses/${expense.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(expense),
+    });
+    await fetchExpenses();
   };
 
   const handleAddCustomCategory = async (category: string) => {
@@ -92,6 +105,14 @@ export default function Home() {
             </p>
           </div>
           <div className="flex items-center gap-4 mt-1">
+            <Button
+              onClick={() => setShowQuickAdd(true)}
+              size="sm"
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Quick Add
+            </Button>
             <Link
               href="/budget"
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -129,6 +150,7 @@ export default function Home() {
               <ExpenseList
                 expenses={expenses.slice(0, recentLimit)}
                 onDeleteExpense={handleDeleteExpense}
+                onEditExpense={handleEditExpense}
                 customCategories={customCategories}
                 title="Recent Expenses"
                 limitSelector={
@@ -159,10 +181,19 @@ export default function Home() {
             <ExpenseList
               expenses={expenses}
               onDeleteExpense={handleDeleteExpense}
+              onEditExpense={handleEditExpense}
               customCategories={customCategories}
             />
           </TabsContent>
         </Tabs>
+
+        <QuickAddExpenseDialog
+          open={showQuickAdd}
+          onOpenChange={setShowQuickAdd}
+          onAddExpense={handleAddExpense}
+          customCategories={customCategories}
+          onAddCustomCategory={handleAddCustomCategory}
+        />
       </div>
     </div>
   );
