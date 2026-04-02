@@ -39,7 +39,7 @@ export function ExpenseList({ expenses, onDeleteExpense, customCategories = [], 
   const [filterTag, setFilterTag] = useState("All");
   const [sortBy, setSortBy] = useState<"date" | "amount">("date");
 
-  const allCategories = ["All", ...DEFAULT_CATEGORIES, ...customCategories];
+  const allCategories = ["All", ...new Set([...DEFAULT_CATEGORIES, ...customCategories])];
 
   // Get all unique tags from expenses
   const allTags = Array.from(
