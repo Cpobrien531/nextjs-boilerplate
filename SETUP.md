@@ -1,4 +1,4 @@
-n# AI Expense Tracker - Setup & Usage Guide
+nr# AI Expense Tracker - Setup & Usage Guide
 
 ## 🎯 Overview
 

@@ -132,12 +132,14 @@ export function CategorySelect({
                       <span>{cat}</span>
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           if (onDeleteCustomCategory) {
                             onDeleteCustomCategory(cat);
                           }
                         }}
-                        className="hover:bg-destructive/20 rounded p-0.5 transition-colors"
+                        className="hover:bg-destructive/20 rounded p-0.5 transition-colors cursor-pointer"
                         title="Delete category"
                       >
                         <X className="h-3 w-3" />
