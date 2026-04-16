@@ -9,6 +9,7 @@ import { ReceiptScanner } from "./receipt-scanner";
 import { Separator } from "./ui/separator";
 import { TagInput } from "./tag-input";
 import { CategorySelect } from "./category-select";
+import { toast } from "sonner";
 
 export interface Expense {
   id: string;
@@ -111,6 +112,7 @@ export function ExpenseForm({ onAddExpense, customCategories, onAddCustomCategor
     };
 
     onAddExpense(expense);
+    toast.success("Expense added successfully!");
 
     // Reset form
     setAmount("");
