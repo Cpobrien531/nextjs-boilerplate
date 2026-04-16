@@ -67,7 +67,7 @@ export function CategorySelect({
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
-              {allCategories.map((cat) => (
+              {allCategories.filter((cat) => cat).map((cat) => (
                 <SelectItem key={cat} value={cat}>
                   {cat}
                 </SelectItem>

@@ -82,7 +82,7 @@ export function ExpenseList({ expenses, onDeleteExpense, onEditExpense, customCa
                   <SelectValue placeholder="Filter by category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allCategories.map((cat) => (
+                  {allCategories.filter((cat) => cat).map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
                     </SelectItem>

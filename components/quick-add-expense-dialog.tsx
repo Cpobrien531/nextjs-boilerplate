@@ -12,7 +12,6 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { Expense } from "./expense-form";
-import { CategorySelect } from "./category-select";
 
 interface QuickAddExpenseDialogProps {
   open: boolean;
@@ -26,23 +25,33 @@ export function QuickAddExpenseDialog({
   open,
   onOpenChange,
   onAddExpense,
-  customCategories,
-  onAddCustomCategory,
 }: QuickAddExpenseDialogProps) {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!amount || !description || !category) {
-      return;
-    }
+    if (!amount || !description) return;
 
     setSubmitting(true);
     try {
+      // Fetch AI category at submit time
+      let category = "Other";
+      try {
+        const res = await fetch("/api/ai/categorize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ expenseName: description }),
+        });
+        const data = await res.json();
+        if (data.success && data.data.suggestedCategory) {
+          category = data.data.suggestedCategory;
+        }
+      } catch {
+        // fall back to "Other"
+      }
+
       const expense: Expense = {
         id: Date.now().toString(),
         amount: parseFloat(amount),
@@ -54,10 +63,8 @@ export function QuickAddExpenseDialog({
 
       onAddExpense(expense);
 
-      // Reset form
       setAmount("");
       setDescription("");
-      setCategory("");
       onOpenChange(false);
     } finally {
       setSubmitting(false);
@@ -70,11 +77,24 @@ export function QuickAddExpenseDialog({
         <DialogHeader>
           <DialogTitle>Quick Add Expense</DialogTitle>
           <DialogDescription>
-            Quickly add an expense with the essential details.
+            AI will automatically categorize your expense.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="quick-description">Description *</Label>
+            <Input
+              id="quick-description"
+              type="text"
+              placeholder="What was this for?"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="quick-amount">Amount ($) *</Label>
             <Input
@@ -85,28 +105,8 @@ export function QuickAddExpenseDialog({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
-              autoFocus
             />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="quick-description">Description *</Label>
-            <Input
-              id="quick-description"
-              type="text"
-              placeholder="What was this for?"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-            />
-          </div>
-
-          <CategorySelect
-            value={category}
-            onValueChange={setCategory}
-            customCategories={customCategories}
-            onAddCustomCategory={onAddCustomCategory}
-          />
 
           <DialogFooter>
             <Button
@@ -117,8 +117,8 @@ export function QuickAddExpenseDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting || !amount || !description || !category}>
-              {submitting ? "Adding..." : "Add Expense"}
+            <Button type="submit" disabled={submitting || !amount || !description}>
+              {submitting ? "Categorizing & Adding..." : "Add Expense"}
             </Button>
           </DialogFooter>
         </form>

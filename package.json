@@ -12,6 +12,7 @@
     "test:ci": "jest --ci --coverage"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -53,7 +54,7 @@
     "next": "^16.1.7",
     "next-auth": "^4.24.13",
     "next-themes": "^0.4.6",
-    "openai": "^6.33.0",
+    "openai": "^6.34.0",
     "react": "19.2.3",
     "react-day-picker": "^9.14.0",
     "react-dom": "19.2.3",

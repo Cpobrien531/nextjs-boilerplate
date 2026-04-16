@@ -64,6 +64,22 @@ export default function ExpensesPage() {
     fetchExpenses()
   }, [filters, fetchExpenses])
 
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this expense?')) return
+    try {
+      const res = await fetch(`/api/expenses/${id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (data.success) {
+        setExpenses((prev) => prev.filter((e) => e.id !== id))
+      } else {
+        alert('Failed to delete expense')
+      }
+    } catch (error) {
+      console.error('Error deleting expense:', error)
+      alert('Error deleting expense')
+    }
+  }
+
   const handleExport = async () => {
     try {
       const params = new URLSearchParams()
@@ -166,7 +182,7 @@ export default function ExpensesPage() {
                       <button className="text-blue-500 hover:text-blue-700 mr-4 text-sm">
                         Edit
                       </button>
-                      <button className="text-red-500 hover:text-red-700 text-sm">Delete</button>
+                      <button onClick={() => handleDelete(expense.id)} className="text-red-500 hover:text-red-700 text-sm">Delete</button>
                     </td>
                   </tr>
                 ))}

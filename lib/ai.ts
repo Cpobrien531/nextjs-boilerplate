@@ -1,7 +1,7 @@
-import OpenAI from 'openai'
+import Anthropic from '@anthropic-ai/sdk'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 })
 
 export async function categorizeExpense(
@@ -9,26 +9,25 @@ export async function categorizeExpense(
   description?: string,
   categories?: string[],
 ): Promise<{ category: string; confidence: number }> {
-  try {
-    const defaultCategories = [
-      'Food & Dining',
-      'Transportation',
-      'Shopping',
-      'Entertainment',
-      'Utilities',
-      'Healthcare',
-      'Fitness',
-      'Education',
-      'Travel',
-      'Business',
-      'Personal Care',
-      'Home & Garden',
-      'Other',
-    ]
+  const defaultCategories = [
+    'Food & Dining',
+    'Transportation',
+    'Shopping',
+    'Entertainment',
+    'Utilities',
+    'Healthcare',
+    'Fitness',
+    'Education',
+    'Travel',
+    'Business',
+    'Personal Care',
+    'Home & Garden',
+    'Other',
+  ]
 
-    const categoriesToUse = categories && categories.length > 0 ? categories : defaultCategories
+  const categoriesToUse = categories && categories.length > 0 ? categories : defaultCategories
 
-    const message = `Categorize this expense into one of the following categories: ${categoriesToUse.join(', ')}.
+  const message = `Categorize this expense into one of the following categories: ${categoriesToUse.join(', ')}.
 
 Expense Name: ${expenseName}
 ${description ? `Description: ${description}` : ''}
@@ -41,34 +40,23 @@ Respond ONLY with a valid JSON object in this exact format:
 
 The confidence should be a number between 0 and 1 indicating how confident you are in this categorization.`
 
-    const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
-      max_tokens: 200,
-      messages: [
-        {
-          role: 'user',
-          content: message,
-        },
-      ],
-    })
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 256,
+    messages: [{ role: 'user', content: message }],
+  })
 
-    let responseText = ''
-    if (response.choices[0].message && 'content' in response.choices[0].message) {
-      responseText = response.choices[0].message.content || ''
-    }
-
-    // Clean up the response - remove markdown code blocks if present
-    responseText = responseText.replace(/```json\n?|\n?```/g, '').trim()
-
-    const result = JSON.parse(responseText)
-
-    return {
-      category: result.category,
-      confidence: result.confidence,
-    }
-  } catch (error) {
-    console.error('Error categorizing expense:', error)
+  const textBlock = response.content.find((b) => b.type === 'text')
+  if (!textBlock || textBlock.type !== 'text') {
     throw new Error('Failed to categorize expense')
+  }
+
+  const cleaned = textBlock.text.replace(/```json\n?|\n?```/g, '').trim()
+  const result = JSON.parse(cleaned)
+
+  return {
+    category: result.category,
+    confidence: result.confidence,
   }
 }
 
@@ -79,33 +67,22 @@ export async function generateBudgetSummary(
     category: string
   }>,
 ): Promise<string> {
-  try {
-    const expenseList = expenses.map((e) => `- ${e.name}: $${e.amount.toFixed(2)} (${e.category})`).join('\n')
+  const expenseList = expenses
+    .map((e) => `- ${e.name}: $${e.amount.toFixed(2)} (${e.category})`)
+    .join('\n')
 
-    const message = `Analyze these expenses and provide a brief summary with spending insights:
+  const message = `Analyze these expenses and provide a brief summary with spending insights:
 
 ${expenseList}
 
 Provide a concise summary (2-3 sentences) highlighting spending patterns and recommendations.`
 
-    const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
-      max_tokens: 300,
-      messages: [
-        {
-          role: 'user',
-          content: message,
-        },
-      ],
-    })
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 512,
+    messages: [{ role: 'user', content: message }],
+  })
 
-    if (response.choices[0].message && 'content' in response.choices[0].message) {
-      return response.choices[0].message.content || 'Unable to generate summary'
-    }
-
-    return 'Unable to generate summary'
-  } catch (error) {
-    console.error('Error generating budget summary:', error)
-    throw new Error('Failed to generate budget summary')
-  }
+  const textBlock = response.content.find((b) => b.type === 'text')
+  return textBlock && textBlock.type === 'text' ? textBlock.text : 'Unable to generate summary'
 }
