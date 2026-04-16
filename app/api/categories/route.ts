@@ -1,13 +1,19 @@
 import { prisma } from '@/lib/db'
-import { categorySchema } from '@/lib/validations'
 import { apiResponse, apiError, handleApiError } from '@/lib/api'
 
-export async function GET(_request: Request) {
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url)
+    const full = url.searchParams.get('full') === 'true'
+
     const categories = await prisma.category.findMany({
-      select: { categoryName: true },
       orderBy: { categoryName: 'asc' },
     })
+
+    if (full) {
+      return apiResponse(categories)
+    }
+
     return apiResponse(categories.map((c) => c.categoryName))
   } catch (error) {
     return handleApiError(error)
@@ -16,7 +22,7 @@ export async function GET(_request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { name } = await request.json()
+    const { name, description } = await request.json()
 
     if (!name?.trim()) {
       return apiError('Category name is required', 400)
@@ -24,11 +30,16 @@ export async function POST(request: Request) {
 
     const category = await prisma.category.upsert({
       where: { categoryName: name.trim() },
-      update: {},
-      create: { categoryName: name.trim() },
+      update: {
+        ...(description !== undefined && { categoryDescription: description }),
+      },
+      create: {
+        categoryName: name.trim(),
+        categoryDescription: description,
+      },
     })
 
-    return apiResponse({ name: category.categoryName }, 201)
+    return apiResponse(category, 201)
   } catch (error) {
     return handleApiError(error)
   }

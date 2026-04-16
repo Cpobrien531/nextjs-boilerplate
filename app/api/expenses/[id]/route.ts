@@ -79,6 +79,11 @@ export async function DELETE(
     if (!expense) return apiError('Expense not found', 404)
     if (expense.userId !== userId) return apiError('Forbidden', 403)
 
+    // Delete related records first to avoid foreign key constraints
+    await prisma.expenseTag.deleteMany({ where: { expenseId } })
+    await prisma.receipt.deleteMany({ where: { expenseId } })
+
+    // Now delete the expense
     await prisma.expense.delete({ where: { expenseId } })
     return apiResponse({ message: 'Expense deleted successfully' })
   } catch (error) {

@@ -25,16 +25,32 @@ export default function Home() {
   }, [status, router]);
 
   const fetchExpenses = useCallback(async () => {
-    const res = await fetch("/api/expenses");
-    const json = await res.json();
-    if (json.success) setExpenses(json.data);
+    try {
+      const res = await fetch("/api/expenses");
+      const json = await res.json();
+      if (json.success) {
+        console.log('Fetched expenses:', json.data);
+        setExpenses(json.data);
+      } else {
+        console.error('Failed to fetch expenses:', json.error);
+      }
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+    }
   }, []);
 
   const fetchCategories = useCallback(async () => {
-    const res = await fetch("/api/categories");
-    const json = await res.json();
-    if (json.success) {
-      setCustomCategories(json.data as string[]);
+    try {
+      const res = await fetch("/api/categories");
+      const json = await res.json();
+      if (json.success) {
+        console.log('Fetched categories:', json.data);
+        setCustomCategories(json.data as string[]);
+      } else {
+        console.error('Failed to fetch categories:', json.error);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
     }
   }, []);
 
@@ -46,38 +62,104 @@ export default function Home() {
   }, [status, fetchExpenses, fetchCategories]);
 
   const handleAddExpense = async (expense: Expense) => {
-    await fetch("/api/expenses", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(expense),
-    });
-    await fetchExpenses();
+    try {
+      const response = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(expense),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        console.log('Expense added successfully:', data);
+        await fetchExpenses();
+      } else {
+        console.error('Failed to add expense:', data.error);
+        alert(`Failed to add expense: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      alert('Error adding expense. Please try again.');
+    }
   };
 
   const handleDeleteExpense = async (id: string) => {
     console.log('handleDeleteExpense called with id:', id);
-    await fetch(`/api/expenses/${id}`, { method: "DELETE" });
-    await fetchExpenses();
+    try {
+      const response = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
+      const data = await response.json();
+      if (data.success) {
+        console.log('Expense deleted successfully');
+        await fetchExpenses();
+      } else {
+        console.error('Failed to delete expense:', data.error);
+        alert(`Failed to delete expense: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      alert('Error deleting expense. Please try again.');
+    }
   };
 
   const handleEditExpense = async (expense: Expense) => {
-    await fetch(`/api/expenses/${expense.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(expense),
-    });
-    await fetchExpenses();
+    try {
+      const response = await fetch(`/api/expenses/${expense.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(expense),
+      });
+      const data = await response.json();
+      if (data.success) {
+        console.log('Expense updated successfully');
+        await fetchExpenses();
+      } else {
+        console.error('Failed to update expense:', data.error);
+        alert(`Failed to update expense: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      alert('Error updating expense. Please try again.');
+    }
   };
 
   const handleAddCustomCategory = async (category: string) => {
-    await fetch("/api/categories", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: category }),
-    });
-    setCustomCategories((prev) =>
-      prev.includes(category) ? prev : [...prev, category]
-    );
+    try {
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: category }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setCustomCategories((prev) =>
+          prev.includes(category) ? prev : [...prev, category]
+        );
+      } else {
+        console.error('Failed to add category:', data.error);
+        alert(`Failed to add category: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error adding category:', error);
+      alert('Error adding category. Please try again.');
+    }
+  };
+
+  const handleDeleteCustomCategory = async (category: string) => {
+    try {
+      const response = await fetch(`/api/categories?name=${encodeURIComponent(category)}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+      if (data.success) {
+        setCustomCategories((prev) => prev.filter((c) => c !== category));
+      } else {
+        console.error('Failed to delete category:', data.error);
+        alert(`Failed to delete category: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      alert('Error deleting category. Please try again.');
+    }
   };
 
   if (status === "loading" || status === "unauthenticated") return null;

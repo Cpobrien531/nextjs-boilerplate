@@ -46,7 +46,7 @@ export default function CategoriesPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('/api/categories')
+      const res = await fetch('/api/categories?full=true')
       const data = await res.json()
       if (data.success) {
         setCategories(data.data)
@@ -66,8 +66,8 @@ export default function CategoriesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          categoryName: formData.categoryName,
-          categoryDescription: formData.categoryDescription,
+          name: formData.categoryName,
+          description: formData.categoryDescription,
         }),
       })
 

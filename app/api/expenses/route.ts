@@ -37,16 +37,30 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
+    console.log('Session:', session)
+    console.log('Session user:', session?.user)
+    console.log('Session user id:', session?.user?.id)
+    
     if (!session?.user?.id) return apiError('Unauthorized', 401)
 
     const userId = parseInt(session.user.id)
+    console.log('Parsed userId:', userId)
+    
+    // Check if user exists
+    const user = await prisma.user.findUnique({ where: { userId } })
+    console.log('Found user:', user)
+    
+    if (!user) return apiError('User not found', 404)
+
     const { amount, description, category, date, tags = [] } = await request.json()
+    console.log('Expense data:', { amount, description, category, date, tags })
 
     const categoryRecord = await prisma.category.upsert({
       where: { categoryName: category },
       update: {},
       create: { categoryName: category },
     })
+    console.log('Category record:', categoryRecord)
 
     const expense = await prisma.expense.create({
       data: {
@@ -57,6 +71,7 @@ export async function POST(request: Request) {
         categoryId: categoryRecord.categoryId,
       },
     })
+    console.log('Created expense:', expense)
 
     for (const tagName of tags as string[]) {
       let tag = await prisma.tag.findFirst({ where: { userId, tagName } })
@@ -72,6 +87,7 @@ export async function POST(request: Request) {
 
     return apiResponse({ id: String(expense.expenseId) }, 201)
   } catch (error) {
+    console.error('Expense creation error:', error)
     return handleApiError(error)
   }
 }
