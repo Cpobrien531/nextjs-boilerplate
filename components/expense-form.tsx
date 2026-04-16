@@ -24,10 +24,10 @@ interface ExpenseFormProps {
   onAddExpense: (expense: Expense) => void;
   customCategories: string[];
   onAddCustomCategory: (category: string) => void;
-  onDeleteCustomCategory?: (category: string) => void;
+  onCategoriesChange?: () => void;
 }
 
-export function ExpenseForm({ onAddExpense, customCategories, onAddCustomCategory, onDeleteCustomCategory }: ExpenseFormProps) {
+export function ExpenseForm({ onAddExpense, customCategories, onAddCustomCategory, onCategoriesChange }: ExpenseFormProps) {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
@@ -208,7 +208,7 @@ export function ExpenseForm({ onAddExpense, customCategories, onAddCustomCategor
             onValueChange={setCategory}
             customCategories={customCategories}
             onAddCustomCategory={onAddCustomCategory}
-            onDeleteCustomCategory={onDeleteCustomCategory}
+            onCategoriesChange={onCategoriesChange}
           />
 
           <TagInput tags={tags} onTagsChange={setTags} />

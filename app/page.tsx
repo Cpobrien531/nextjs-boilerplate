@@ -80,13 +80,6 @@ export default function Home() {
     );
   };
 
-  const handleDeleteCustomCategory = async (category: string) => {
-    await fetch(`/api/categories?name=${encodeURIComponent(category)}`, {
-      method: "DELETE",
-    });
-    setCustomCategories((prev) => prev.filter((c) => c !== category));
-  };
-
   if (status === "loading" || status === "unauthenticated") return null;
 
   return (
@@ -173,7 +166,7 @@ export default function Home() {
               onAddExpense={handleAddExpense}
               customCategories={customCategories}
               onAddCustomCategory={handleAddCustomCategory}
-              onDeleteCustomCategory={handleDeleteCustomCategory}
+              onCategoriesChange={fetchCategories}
             />
           </TabsContent>
 

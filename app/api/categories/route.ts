@@ -60,6 +60,15 @@ export async function DELETE(request: Request) {
       return apiError('Cannot delete category that has associated expenses', 400)
     }
 
+    // Check if category is used in budgets
+    const budgetCount = await prisma.budget.count({
+      where: { categoryId: category.categoryId },
+    })
+
+    if (budgetCount > 0) {
+      return apiError('Cannot delete category that has assigned budgets', 400)
+    }
+
     await prisma.category.delete({
       where: { categoryId: category.categoryId },
     })

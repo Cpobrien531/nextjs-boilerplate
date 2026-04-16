@@ -11,6 +11,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { PlusCircle, Check, X } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ interface CategorySelectProps {
   customCategories: string[];
   onAddCustomCategory: (category: string) => void;
   onDeleteCustomCategory?: (category: string) => void;
+  onCategoriesChange?: () => void;
 }
 
 export function CategorySelect({
@@ -34,9 +36,11 @@ export function CategorySelect({
   customCategories,
   onAddCustomCategory,
   onDeleteCustomCategory,
+  onCategoriesChange,
 }: CategorySelectProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const allCategories = [...new Set([...customCategories])];
 
@@ -47,6 +51,30 @@ export function CategorySelect({
       onValueChange(trimmed);
       setNewCategory("");
       setIsDialogOpen(false);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryName: string) => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/categories?name=${encodeURIComponent(categoryName)}`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success('Category deleted successfully!');
+        if (onCategoriesChange) {
+          onCategoriesChange();
+        }
+      } else {
+        const errorMsg = json.message || json.error || 'Failed to delete category';
+        toast.error(errorMsg);
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to delete category';
+      toast.error(errorMsg);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -91,7 +119,7 @@ export function CategorySelect({
           <DialogHeader>
             <DialogTitle>Manage Categories</DialogTitle>
             <DialogDescription>
-              Add new categories or delete existing ones. Note: Categories with expenses cannot be deleted.
+              Add new categories or delete existing ones. Note: Categories with expenses or budgets cannot be deleted.
             </DialogDescription>
           </DialogHeader>
 
@@ -123,12 +151,11 @@ export function CategorySelect({
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          if (onDeleteCustomCategory) {
-                            onDeleteCustomCategory(cat);
-                          }
+                          handleDeleteCategory(cat);
                         }}
-                        className="hover:bg-destructive/20 rounded p-0.5 transition-colors cursor-pointer"
+                        className="hover:bg-destructive/20 rounded p-0.5 transition-colors cursor-pointer disabled:opacity-50"
                         title="Delete category"
+                        disabled={isDeleting}
                       >
                         <X className="h-3 w-3" />
                       </button>

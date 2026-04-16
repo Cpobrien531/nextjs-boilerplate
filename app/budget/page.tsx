@@ -4,8 +4,9 @@ import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
 import { format } from 'date-fns'
-import { Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Trash2, ChevronLeft, ChevronRight, PlusCircle, X } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 
 interface BudgetEntry {
   budgetId: number
@@ -29,6 +30,9 @@ export default function BudgetPage() {
   const [editingCategory, setEditingCategory] = useState<string>('')
   const [editingAmount, setEditingAmount] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [newCategory, setNewCategory] = useState('')
+  const [isAddingCategory, setIsAddingCategory] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -117,6 +121,58 @@ export default function BudgetPage() {
     }
   }
 
+  async function handleAddCategory() {
+    const trimmed = newCategory.trim()
+    if (!trimmed) return
+
+    setIsAddingCategory(true)
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        toast.success(`Category "${trimmed}" added successfully!`)
+        await fetchCategories()
+        setEditingCategory(trimmed)
+        setNewCategory('')
+        setIsDialogOpen(false)
+      }
+    } catch (error) {
+      toast.error('Failed to add category')
+    } finally {
+      setIsAddingCategory(false)
+    }
+  }
+
+  async function handleDeleteCategory(categoryName: string) {
+    try {
+      const res = await fetch(`/api/categories?name=${encodeURIComponent(categoryName)}`, {
+        method: 'DELETE',
+      })
+      const json = await res.json()
+      if (json.success) {
+        toast.success('Category deleted successfully!')
+        await fetchCategories()
+      } else {
+        const errorMsg = json.message || json.error || 'Failed to delete category'
+        toast.error(errorMsg)
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to delete category'
+      toast.error(errorMsg)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAddCategory()
+    }
+  }
+
   function progressColor(pct: number): string {
     if (pct >= 100) return 'bg-red-500'
     if (pct >= 75) return 'bg-yellow-400'
@@ -183,6 +239,13 @@ export default function BudgetPage() {
               </option>
             ))}
           </select>
+          <button
+            onClick={() => setIsDialogOpen(true)}
+            className="px-3 py-2 rounded-md border border-border hover:bg-accent transition-colors"
+            title="Add new category"
+          >
+            <PlusCircle className="w-4 h-4" />
+          </button>
           <input
             type="number"
             min="0"
@@ -250,6 +313,73 @@ export default function BudgetPage() {
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {/* Category Management Dialog */}
+        {isDialogOpen && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+            <div className="bg-background border border-border rounded-lg shadow-lg max-w-md w-full p-6 space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold">Manage Categories</h2>
+                <p className="text-sm text-muted-foreground">Add new categories or delete existing ones.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Add Category Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Pet Care, Subscriptions"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  autoFocus
+                  className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+
+              {categories.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">All Categories ({categories.length}):</p>
+                  <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-2 bg-muted rounded">
+                    {categories.map((cat) => (
+                      <div
+                        key={cat}
+                        className="text-xs px-2 py-1 bg-secondary rounded-md flex items-center gap-2"
+                      >
+                        <span>{cat}</span>
+                        <button
+                          onClick={() => handleDeleteCategory(cat)}
+                          className="hover:bg-destructive/20 rounded p-0.5 transition-colors"
+                          title="Delete category"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setIsDialogOpen(false)
+                    setNewCategory('')
+                  }}
+                  className="px-4 py-2 rounded-md border border-border hover:bg-accent transition-colors text-sm font-medium"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleAddCategory}
+                  disabled={isAddingCategory || !newCategory.trim()}
+                  className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {isAddingCategory ? 'Adding...' : 'Add Category'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
