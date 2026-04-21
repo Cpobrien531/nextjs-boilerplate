@@ -4,9 +4,11 @@ import { prisma } from '@/lib/db'
 import { apiResponse, apiError, handleApiError } from '@/lib/api'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+function getOpenAIClient() {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
+}
 
 export async function GET(request: Request) {
   try {
@@ -95,7 +97,7 @@ ${JSON.stringify(analysisData, null, 2)}
 
 Respond with a JSON array of suggestions, each with: category (string), recommendation ("increase" | "decrease" | "keep"), reasoning (string), suggestedBudget (number). If no suggestion is needed for a category, omit it from the response.`
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAIClient().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
