@@ -1,6 +1,9 @@
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, waitFor } from "@testing-library/react";
 import Home from "@/app/page";
 import { Expense } from "@/components/expense-form";
+
+// Mock fetch
+global.fetch = jest.fn();
 
 // ─── Mock child components to isolate page-level logic ────────────────────────
 
@@ -59,16 +62,6 @@ jest.mock("@/components/ui/tabs", () => ({
   TabsContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-// ─── localStorage helpers ──────────────────────────────────────────────────────
-
-const STORAGE_KEY = "expense-tracker-data";
-const CATEGORIES_KEY = "expense-tracker-custom-categories";
-
-function seedLocalStorage(expenses: Expense[], categories: string[] = []) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
-  localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
-}
-
 const sampleExpense: Expense = {
   id: "e1",
   amount: 42,
@@ -82,148 +75,165 @@ const sampleExpense: Expense = {
 
 describe("Home (page.tsx)", () => {
   beforeEach(() => {
-    localStorage.clear();
+    jest.clearAllMocks();
     capturedOnAddExpense = null;
     capturedOnDeleteExpense = null;
     capturedOnAddCustomCategory = null;
+
+    // Mock successful API responses
+    (global.fetch as jest.Mock).mockImplementation((url: string, options?: any) => {
+      if (url === "/api/expenses" && (!options || options.method === "GET")) {
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true, data: [] }),
+        });
+      }
+      if (url === "/api/categories" && (!options || options.method === "GET")) {
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true, data: [] }),
+        });
+      }
+      if (url === "/api/expenses" && options?.method === "POST") {
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true }),
+        });
+      }
+      if (url === "/api/categories" && options?.method === "POST") {
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true }),
+        });
+      }
+      if (url.startsWith("/api/expenses/") && options?.method === "DELETE") {
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true }),
+        });
+      }
+      return Promise.resolve({
+        json: () => Promise.resolve({ success: false, error: "Not mocked" }),
+      });
+    });
   });
 
-  describe("localStorage loading", () => {
-    it("should load expenses from localStorage on mount", () => {
-      seedLocalStorage([sampleExpense]);
+  describe("API loading", () => {
+    it("should fetch expenses on mount when authenticated", async () => {
       render(<Home />);
-      // May appear in both overview and history lists
-      expect(screen.getAllByTestId("expense-e1").length).toBeGreaterThan(0);
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith("/api/expenses");
+      });
     });
 
-    it("should load custom categories from localStorage on mount", () => {
-      seedLocalStorage([], ["Pets", "Subscriptions"]);
+    it("should fetch categories on mount when authenticated", async () => {
       render(<Home />);
-      expect(screen.getByTestId("custom-categories")).toHaveTextContent(
-        "Pets,Subscriptions"
-      );
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith("/api/categories");
+      });
     });
 
-    it("should start with empty state when localStorage is empty", () => {
+    it("should display fetched expenses", async () => {
+      // Mock the expenses fetch
+      (global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === "/api/expenses") {
+          return Promise.resolve({
+            json: () => Promise.resolve({ success: true, data: [sampleExpense] }),
+          });
+        }
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true, data: [] }),
+        });
+      });
       render(<Home />);
-      expect(screen.getByTestId("expense-stats")).toHaveTextContent(
-        "0 expenses"
-      );
+      await waitFor(() => {
+        expect(screen.getAllByTestId("expense-e1").length).toBeGreaterThan(0);
+      });
     });
 
-    it("should handle corrupted expense JSON in localStorage without crashing", () => {
-      localStorage.setItem(STORAGE_KEY, "not-valid-json{{");
-      expect(() => render(<Home />)).not.toThrow();
-    });
-
-    it("should handle corrupted categories JSON in localStorage without crashing", () => {
-      localStorage.setItem(CATEGORIES_KEY, "{ broken }");
-      expect(() => render(<Home />)).not.toThrow();
+    it("should display fetched categories", async () => {
+      // Mock the categories fetch
+      (global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === "/api/categories") {
+          return Promise.resolve({
+            json: () => Promise.resolve({ success: true, data: ["Pets", "Subscriptions"] }),
+          });
+        }
+        return Promise.resolve({
+          json: () => Promise.resolve({ success: true, data: [] }),
+        });
+      });
+      render(<Home />);
+      await waitFor(() => {
+        expect(screen.getByTestId("custom-categories")).toHaveTextContent(
+          "Pets,Subscriptions"
+        );
+      });
     });
   });
 
   describe("adding expenses", () => {
-    it("should add an expense to the list when onAddExpense is called", () => {
+    it("should call API to add expense when onAddExpense is called", async () => {
       render(<Home />);
       act(() => {
         capturedOnAddExpense!(sampleExpense);
       });
-      expect(screen.getAllByTestId("expense-e1").length).toBeGreaterThan(0);
+      expect(global.fetch).toHaveBeenCalledWith("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sampleExpense),
+      });
     });
 
-    it("should persist the new expense to localStorage", () => {
+    it("should refetch expenses after adding", async () => {
       render(<Home />);
       act(() => {
         capturedOnAddExpense!(sampleExpense);
       });
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
-      expect(stored).toHaveLength(1);
-      expect(stored[0].id).toBe("e1");
-    });
-
-    it("should prepend new expenses so the newest appears first", () => {
-      const older: Expense = { ...sampleExpense, id: "old", description: "Old" };
-      seedLocalStorage([older]);
-      render(<Home />);
-
-      const newer: Expense = { ...sampleExpense, id: "new", description: "New" };
-      act(() => {
-        capturedOnAddExpense!(newer);
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith("/api/expenses");
       });
-
-      const stored: Expense[] = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
-      expect(stored[0].id).toBe("new");
-      expect(stored[1].id).toBe("old");
     });
   });
 
   describe("deleting expenses", () => {
-    it("should remove the expense from the list when onDeleteExpense is called", () => {
-      seedLocalStorage([sampleExpense]);
+    it("should call API to delete expense when onDeleteExpense is called", async () => {
       render(<Home />);
-
       act(() => {
         capturedOnDeleteExpense!("e1");
       });
-
-      expect(screen.queryAllByTestId("expense-e1")).toHaveLength(0);
+      expect(global.fetch).toHaveBeenCalledWith("/api/expenses/e1", {
+        method: "DELETE",
+      });
     });
 
-    it("should persist the deletion to localStorage", () => {
-      seedLocalStorage([sampleExpense]);
+    it("should refetch expenses after deleting", async () => {
       render(<Home />);
-
       act(() => {
         capturedOnDeleteExpense!("e1");
       });
-
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
-      expect(stored).toHaveLength(0);
-    });
-
-    it("should not remove other expenses when deleting one", () => {
-      const e2: Expense = { ...sampleExpense, id: "e2", description: "Tea" };
-      seedLocalStorage([sampleExpense, e2]);
-      render(<Home />);
-
-      act(() => {
-        capturedOnDeleteExpense!("e1");
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith("/api/expenses");
       });
-
-      expect(screen.getAllByTestId("expense-e2").length).toBeGreaterThan(0);
     });
   });
 
   describe("adding custom categories", () => {
-    it("should add a new custom category", () => {
+    it("should call API to add custom category when onAddCustomCategory is called", async () => {
       render(<Home />);
       act(() => {
         capturedOnAddCustomCategory!("Pets");
       });
-      expect(screen.getByTestId("custom-categories")).toHaveTextContent("Pets");
+      expect(global.fetch).toHaveBeenCalledWith("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Pets" }),
+      });
     });
 
-    it("should not add a duplicate custom category", () => {
-      seedLocalStorage([], ["Pets"]);
+    it("should update local state when category is added successfully", async () => {
       render(<Home />);
-
       act(() => {
         capturedOnAddCustomCategory!("Pets");
       });
-
-      // Should still only appear once in the comma-separated list
-      const text = screen.getByTestId("custom-categories").textContent ?? "";
-      const count = text.split(",").filter((c) => c === "Pets").length;
-      expect(count).toBe(1);
-    });
-
-    it("should persist the new category to localStorage", () => {
-      render(<Home />);
-      act(() => {
-        capturedOnAddCustomCategory!("Hobbies");
+      await waitFor(() => {
+        expect(screen.getByTestId("custom-categories")).toHaveTextContent("Pets");
       });
-      const stored = JSON.parse(localStorage.getItem(CATEGORIES_KEY)!);
-      expect(stored).toContain("Hobbies");
     });
   });
 });
