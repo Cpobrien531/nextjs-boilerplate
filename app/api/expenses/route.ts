@@ -10,6 +10,7 @@ export async function GET() {
 
     const userId = parseInt(session.user.id)
 
+    // DB CALL: fetch all expenses for this user, join in their category and tags, newest first
     const expenses = await prisma.expense.findMany({
       where: { userId },
       include: {
@@ -46,15 +47,17 @@ export async function POST(request: Request) {
     const userId = parseInt(session.user.id)
     console.log('Parsed userId:', userId)
     
-    // Check if user exists
+    // DB CALL: confirm this user ID actually exists in the User table before touching anything
     const user = await prisma.user.findUnique({ where: { userId } })
     console.log('Found user:', user)
     
     if (!user) return apiError('User not found', 404)
 
+    // UNWRAP: converts the JSON string sent from page.tsx back into a JavaScript object
     const { amount, description, category, date, tags = [] } = await request.json()
     console.log('Expense data:', { amount, description, category, date, tags })
 
+    // DB CALL: upsert = find the category if it exists, create it if it doesn't — no duplicates
     const categoryRecord = await prisma.category.upsert({
       where: { categoryName: category },
       update: {},
@@ -62,6 +65,7 @@ export async function POST(request: Request) {
     })
     console.log('Category record:', categoryRecord)
 
+    // DB CALL: insert the new expense row — links to the user and the category found above
     const expense = await prisma.expense.create({
       data: {
         userId,
@@ -74,12 +78,14 @@ export async function POST(request: Request) {
     console.log('Created expense:', expense)
 
     for (const tagName of tags as string[]) {
+      // DB CALL: look up this tag for the user — reuse it if found, create it if new
       let tag = await prisma.tag.findFirst({ where: { userId, tagName } })
       if (!tag) {
         tag = await prisma.tag.create({
           data: { userId, tagName, tagType: 'custom' },
         })
       }
+      // DB CALL: link the tag to this expense in the join table (ExpenseTag)
       await prisma.expenseTag.create({
         data: { expenseId: expense.expenseId, tagId: tag.tagId },
       })

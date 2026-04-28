@@ -26,6 +26,7 @@ export default function Home() {
 
   const fetchExpenses = useCallback(async () => {
     try {
+      // DB CALL: fetch all expenses for this user from the database
       const res = await fetch("/api/expenses");
       const json = await res.json();
       if (json.success) {
@@ -41,6 +42,7 @@ export default function Home() {
 
   const fetchCategories = useCallback(async () => {
     try {
+      // DB CALL: fetch all categories to populate the dropdown in the form
       const res = await fetch("/api/categories");
       const json = await res.json();
       if (json.success) {
@@ -63,6 +65,7 @@ export default function Home() {
 
   const handleAddExpense = async (expense: Expense) => {
     try {
+      // DB CALL: send the new expense to the API to be saved in the database
       const response = await fetch("/api/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,6 +89,7 @@ export default function Home() {
   const handleDeleteExpense = async (id: string) => {
     console.log('handleDeleteExpense called with id:', id);
     try {
+      // DB CALL: delete this specific expense from the database by its ID
       const response = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
       const data = await response.json();
       if (data.success) {
@@ -103,6 +107,7 @@ export default function Home() {
 
   const handleEditExpense = async (expense: Expense) => {
     try {
+      // DB CALL: send the updated expense fields to the API to overwrite the existing record
       const response = await fetch(`/api/expenses/${expense.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -124,6 +129,7 @@ export default function Home() {
 
   const handleAddCustomCategory = async (category: string) => {
     try {
+      // DB CALL: save a new custom category to the database
       const response = await fetch("/api/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -146,6 +152,7 @@ export default function Home() {
 
   const handleDeleteCustomCategory = async (category: string) => {
     try {
+      // DB CALL: delete this category from the database by name
       const response = await fetch(`/api/categories?name=${encodeURIComponent(category)}`, {
         method: "DELETE",
       });
